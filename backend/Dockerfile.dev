@@ -1,0 +1,19 @@
+FROM golang:1.25
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y git ca-certificates && rm -rf /var/lib/apt/lists/*
+
+# Cache deps
+COPY go.mod go.sum ./
+RUN go mod download
+
+# Copy source
+COPY . .
+
+# Install air for live reload
+RUN go install github.com/air-verse/air@v1.63.0
+
+EXPOSE 8080
+
+CMD ["air", "-c", ".air.toml"]
