@@ -1,34 +1,66 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
 import './App.css'
+import {useEffect, useState} from "react";
+
+
+type HealthResponse = {
+    status: string;
+    env: string;
+    time: string;
+}
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [data, setData] = useState<HealthResponse | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const apiUrl = import.meta.env.VITE_API_URL as string;
+
+  useEffect(() => {
+      async function load() {
+          try {
+              setError(null);
+
+              const res = await fetch(`${apiUrl}/health`, {
+                  method: "GET",
+                  credentials: "include",
+              });
+
+              if (!res.ok) {
+                  throw new Error(`HTTP ${res.status}`);
+              }
+
+              const json = (await res.json()) as HealthResponse;
+              setData(json);
+          } catch (e: any) {
+              setError(e.message ?? "Unknown error");
+          }
+      }
+
+      load();
+  }, [apiUrl]);
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
+    <div style={{ fontFamily: "system-ui",  padding: 24 }}>
+        <h1>Go-React-Rooms</h1>
+        <p>Health Check</p>
+
+        <div style={{ marginTop: 16, padding: 16, border: "1px solid #ddd", borderRadius: 8 }}>
+            <div><strong>API URL:</strong> {apiUrl}</div>
+
+            {error && (
+                <div style={{ marginTop: 12 }}>
+                    <strong>Error:</strong> {error}
+                </div>
+            )}
+
+            {data && (
+                <pre style={{ marginTop: 12, background: "#f6f6f6", padding: 12, borderRadius: 12 }}>
+                    {JSON.stringify(data, null, 2)}
+                </pre>
+            )}
+
+            {!error && !data && <div style={{ marginTop: 12 }}>Loading...</div>}
+        </div>
+    </div>
   )
 }
 
