@@ -8,8 +8,8 @@ RUN apt-get update && apt-get install -y git ca-certificates && rm -rf /var/lib/
 COPY go.mod go.sum ./
 RUN go mod download
 
-# Copy source
-COPY . .
+# Copy source, note to self, uncomment for prod, this is fo air (hot reload)
+# COPY . .
 
 # Install air for live reload
 RUN go install github.com/air-verse/air@latest

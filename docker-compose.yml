@@ -36,6 +36,8 @@ services:
       REDIS_URL: "redis://redis:6379"
     ports:
       - "8080:${BACKEND_PORT}"
+    volumes:
+      - ./backend:/app
     depends_on:
       postgres:
         condition: service_healthy
