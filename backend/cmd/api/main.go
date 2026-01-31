@@ -3,74 +3,24 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"go-react-rooms/internal/config"
 	"log"
 	"net/http"
-	"os"
-	"strings"
 	"time"
 )
 
-type Config struct {
-	AppEnv      string
-	Port        string
-	CorsOrigin  []string
-	DatabaseURL string
-	RedisURL    string
-}
-
 func main() {
-	config := loadConfig()
+	configuration := config.LoadConfig()
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusOK, map[string]any{
 			"status": "ok",
-			"env":    config.AppEnv,
+			"env":    configuration.AppEnv,
 			"time":   time.Now().Local().Format(time.RFC3339),
 		})
 	})
 
-	log.Fatal(http.ListenAndServe(":8080", handleCors(config, mux)))
-}
-
-func loadConfig() Config {
-	appEnv := getEnv("APP_ENV", "development")
-	port := getEnv("BACKEND_PORT", "8080")
-	allCors := getEnv("CORS_ORIGIN", "http://localhost:5173")
-
-	parts := strings.Split(allCors, ",")
-	var origins []string
-	for _, p := range parts {
-		p = strings.TrimSpace(p)
-		if p != "" {
-			origins = append(origins, p)
-		}
-	}
-
-	databaseURL := getEnv("DATABASE_URL", "")
-	redisURL := getEnv("REDIS_URL", "")
-
-	if databaseURL == "" {
-		log.Fatal("DATABASE_URL not found")
-	}
-	if redisURL == "" {
-		log.Fatal("REDIS_URL not found")
-	}
-
-	return Config{
-		AppEnv:      appEnv,
-		Port:        port,
-		CorsOrigin:  origins,
-		DatabaseURL: databaseURL,
-		RedisURL:    redisURL,
-	}
-}
-
-func getEnv(key string, fallback string) string {
-	value := os.Getenv(key)
-	if value == "" {
-		return fallback
-	}
-	return value
+	log.Fatal(http.ListenAndServe(":8080", handleCors(configuration, mux)))
 }
 
 func writeJSON(w http.ResponseWriter, status int, v any) {
@@ -81,12 +31,12 @@ func writeJSON(w http.ResponseWriter, status int, v any) {
 	}
 }
 
-func handleCors(config Config, next http.Handler) http.Handler {
+func handleCors(configuration config.Config, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		origin := r.Header.Get("Origin")
 
 		allowed := false
-		for _, o := range config.CorsOrigin {
+		for _, o := range configuration.CorsOrigin {
 			if origin == o {
 				allowed = true
 				break
