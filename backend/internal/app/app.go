@@ -15,6 +15,7 @@ import (
 type App struct {
 	Config  config.Config
 	DB      *db.Postgres
+	Redis   *cache.Redis
 	Handler http.Handler
 }
 
@@ -31,7 +32,7 @@ func New(cfg config.Config) (*App, error) {
 		return nil, err
 	}
 
-	_, err = cache.Connect(cfg.RedisURL)
+	rd, err := cache.Connect(cfg.RedisURL)
 	if err != nil {
 		return nil, err
 	}
@@ -39,7 +40,10 @@ func New(cfg config.Config) (*App, error) {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/health/live", health.Live)
-	//mux.HandleFunc("/health/ready", nil)
+	mux.HandleFunc("/health/ready", health.Ready(health.Deps{
+		DB:    pg.DB,
+		Redis: rd.Client,
+	}))
 	mux.HandleFunc("/debug/dbtime", debug.DBTime(pg.DB))
 
 	handler := httpserver.NewHandler(httpserver.CORSConfig{
@@ -57,5 +61,14 @@ func (a *App) Server() *http.Server {
 		Addr:              ":" + a.Config.Port,
 		Handler:           a.Handler,
 		ReadHeaderTimeout: 5 * time.Second,
+	}
+}
+
+func (a *App) Close() {
+	if a.Redis != nil {
+		_ = a.Redis.Client.Close()
+	}
+	if a.DB != nil {
+		_ = a.DB.DB.Close()
 	}
 }
