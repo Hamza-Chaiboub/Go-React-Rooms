@@ -3,7 +3,7 @@ package debug
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
+	"go-react-rooms/internal/functions"
 	"net/http"
 	"time"
 )
@@ -15,18 +15,12 @@ func DBTime(db *sql.DB) http.HandlerFunc {
 
 		var now time.Time
 		if err := db.QueryRowContext(ctx, "select now()").Scan(&now); err != nil {
-			writeJSON(w, http.StatusInternalServerError, map[string]any{
+			functions.WriteJSON(w, http.StatusInternalServerError, map[string]any{
 				"error": err.Error(),
 			})
 		}
-		writeJSON(w, http.StatusOK, map[string]any{
+		functions.WriteJSON(w, http.StatusOK, map[string]any{
 			"db_time": now.UTC().Format(time.RFC3339),
 		})
 	}
-}
-
-func writeJSON(w http.ResponseWriter, status int, v any) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-	_ = json.NewEncoder(w).Encode(v)
 }

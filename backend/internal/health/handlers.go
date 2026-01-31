@@ -3,7 +3,7 @@ package health
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
+	"go-react-rooms/internal/functions"
 	"net/http"
 	"time"
 
@@ -16,7 +16,7 @@ type Deps struct {
 }
 
 func Live(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, http.StatusOK, map[string]any{
+	functions.WriteJSON(w, http.StatusOK, map[string]any{
 		"status": "live",
 	})
 }
@@ -37,16 +37,10 @@ func Ready(deps Deps) http.HandlerFunc {
 			code = http.StatusServiceUnavailable
 		}
 
-		writeJSON(w, code, map[string]any{
+		functions.WriteJSON(w, code, map[string]any{
 			"status": status,
 			"db":     dbOk,
 			"redis":  redisOk,
 		})
 	}
-}
-
-func writeJSON(w http.ResponseWriter, status int, v any) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-	_ = json.NewEncoder(w).Encode(v)
 }
