@@ -2,9 +2,11 @@ package app
 
 import (
 	"errors"
+	"go-react-rooms/internal/cache"
 	"go-react-rooms/internal/config"
 	"go-react-rooms/internal/db"
 	"go-react-rooms/internal/debug"
+	"go-react-rooms/internal/health"
 	"go-react-rooms/internal/httpserver"
 	"net/http"
 	"time"
@@ -29,9 +31,14 @@ func New(cfg config.Config) (*App, error) {
 		return nil, err
 	}
 
+	_, err = cache.Connect(cfg.RedisURL)
+	if err != nil {
+		return nil, err
+	}
+
 	mux := http.NewServeMux()
 
-	//mux.HandleFunc("/health/live", nil)
+	mux.HandleFunc("/health/live", health.Live)
 	//mux.HandleFunc("/health/ready", nil)
 	mux.HandleFunc("/debug/dbtime", debug.DBTime(pg.DB))
 
