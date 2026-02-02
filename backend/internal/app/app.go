@@ -2,12 +2,14 @@ package app
 
 import (
 	"errors"
+	"go-react-rooms/internal/auth"
 	"go-react-rooms/internal/cache"
 	"go-react-rooms/internal/config"
 	"go-react-rooms/internal/db"
 	"go-react-rooms/internal/debug"
 	"go-react-rooms/internal/health"
 	"go-react-rooms/internal/httpserver"
+	"go-react-rooms/internal/repositories/users"
 	"net/http"
 	"time"
 )
@@ -45,6 +47,13 @@ func New(cfg config.Config) (*App, error) {
 		Redis: rd.Client,
 	}))
 	mux.HandleFunc("/debug/dbtime", debug.DBTime(pg.DB))
+	userRepo := users.Repo{
+		DB: pg.DB,
+	}
+	authHandler := auth.Handlers{
+		Users: userRepo,
+	}
+	mux.HandleFunc("/auth/create", authHandler.Register)
 
 	handler := httpserver.NewHandler(httpserver.CORSConfig{
 		Origins: cfg.CorsOrigin,
