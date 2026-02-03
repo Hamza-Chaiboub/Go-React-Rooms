@@ -21,7 +21,8 @@ type loginReq struct {
 }
 
 type Handlers struct {
-	Users users.Repo
+	Users    users.Repo
+	Sessions *SessionStore
 }
 
 func (h Handlers) Register(w http.ResponseWriter, r *http.Request) {
@@ -87,7 +88,18 @@ func (h Handlers) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	functions.WriteJSON(w, http.StatusFound, map[string]any{
+	sid, err := h.Sessions.NewSessionID()
+	if err != nil {
+		functions.WriteError(w, http.StatusInternalServerError, "could not create session")
+		return
+	}
+
+	if err := h.Sessions.Save(r.Context(), sid, u.ID); err != nil {
+		functions.WriteError(w, http.StatusInternalServerError, "could  not save session")
+		return
+	}
+
+	functions.WriteJSON(w, http.StatusOK, map[string]any{
 		"id":    u.ID,
 		"email": u.Email,
 	})

@@ -50,8 +50,10 @@ func New(cfg config.Config) (*App, error) {
 	userRepo := users.Repo{
 		DB: pg.DB,
 	}
+	sessionStore := auth.NewSessionStore(rd.Client)
 	authHandler := auth.Handlers{
-		Users: userRepo,
+		Users:    userRepo,
+		Sessions: sessionStore,
 	}
 	mux.HandleFunc("/auth/register", authHandler.Register)
 	mux.HandleFunc("/auth/get", authHandler.Login)
@@ -62,6 +64,8 @@ func New(cfg config.Config) (*App, error) {
 
 	return &App{
 		Config:  cfg,
+		DB:      pg,
+		Redis:   rd,
 		Handler: handler,
 	}, nil
 }
