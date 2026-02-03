@@ -110,7 +110,7 @@ func (h Handlers) Login(w http.ResponseWriter, r *http.Request) {
 
 func (h Handlers) Logout(w http.ResponseWriter, r *http.Request) {
 	c, err := r.Cookie(CookieName)
-	if err != nil && c.Value != "" {
+	if err == nil && c.Value != "" {
 		_ = h.Sessions.Delete(r.Context(), c.Value)
 	}
 
