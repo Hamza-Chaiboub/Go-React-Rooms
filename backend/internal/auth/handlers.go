@@ -23,6 +23,7 @@ type loginReq struct {
 type Handlers struct {
 	Users    users.Repo
 	Sessions *SessionStore
+	Cookie   CookieOptions
 }
 
 func (h Handlers) Register(w http.ResponseWriter, r *http.Request) {
@@ -99,8 +100,22 @@ func (h Handlers) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	SetSessionCookie(w, sid, h.Cookie)
+
 	functions.WriteJSON(w, http.StatusOK, map[string]any{
 		"id":    u.ID,
 		"email": u.Email,
+	})
+}
+
+func (h Handlers) Logout(w http.ResponseWriter, r *http.Request) {
+	c, err := r.Cookie(CookieName)
+	if err != nil && c.Value != "" {
+		_ = h.Sessions.Delete(r.Context(), c.Value)
+	}
+
+	ClearSessionCookie(w, h.Cookie)
+	functions.WriteJSON(w, http.StatusOK, map[string]any{
+		"status": "ok",
 	})
 }
