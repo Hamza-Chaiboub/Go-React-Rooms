@@ -5,6 +5,7 @@ import (
 	"go-react-rooms/internal/functions"
 	"go-react-rooms/internal/repositories/users"
 	"net/http"
+	"strings"
 
 	"golang.org/x/crypto/bcrypt"
 )
@@ -24,6 +25,14 @@ type Handlers struct {
 }
 
 func (h Handlers) Register(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		functions.WriteError(w, http.StatusMethodNotAllowed, "method not allowed, use POST")
+		return
+	}
+	if contentType := r.Header.Get("Content-Type"); contentType != "" && !strings.Contains(contentType, "application/json") {
+		functions.WriteError(w, http.StatusUnsupportedMediaType, "Content-Type must be application/json")
+		return
+	}
 	var req registerReq
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		functions.WriteError(w, http.StatusBadRequest, "invalid json")
@@ -53,6 +62,14 @@ func (h Handlers) Register(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h Handlers) Login(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		functions.WriteError(w, http.StatusMethodNotAllowed, "method not allowed, use POST")
+		return
+	}
+	if contentType := r.Header.Get("Content-Type"); contentType != "" && !strings.Contains(contentType, "application/json") {
+		functions.WriteError(w, http.StatusUnsupportedMediaType, "Content-Type must be application/json")
+		return
+	}
 	var req loginReq
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		functions.WriteError(w, http.StatusBadRequest, "invalid json")
@@ -71,9 +88,7 @@ func (h Handlers) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	functions.WriteJSON(w, http.StatusFound, map[string]any{
-		"id":            u.ID,
-		"email":         u.Email,
-		"password_hash": u.PasswordHash,
-		"created_at":    u.CreatedAt,
+		"id":    u.ID,
+		"email": u.Email,
 	})
 }
