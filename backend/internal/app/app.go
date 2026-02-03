@@ -53,7 +53,8 @@ func New(cfg config.Config) (*App, error) {
 	authHandler := auth.Handlers{
 		Users: userRepo,
 	}
-	mux.HandleFunc("/auth/create", authHandler.Register)
+	mux.HandleFunc("/auth/register", authHandler.Register)
+	mux.HandleFunc("/auth/get", authHandler.Login)
 
 	handler := httpserver.NewHandler(httpserver.CORSConfig{
 		Origins: cfg.CorsOrigin,
