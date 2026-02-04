@@ -56,7 +56,9 @@ func New(cfg config.Config) (*App, error) {
 		Sessions: sessionStore,
 	}
 	mux.HandleFunc("/auth/register", authHandler.Register)
-	mux.HandleFunc("/auth/get", authHandler.Login)
+	mux.HandleFunc("/auth/login", authHandler.Login)
+	mux.HandleFunc("/auth/logout", authHandler.Logout)
+	mux.HandleFunc("/me", auth.Me(sessionStore, userRepo))
 
 	handler := httpserver.NewHandler(httpserver.CORSConfig{
 		Origins: cfg.CorsOrigin,

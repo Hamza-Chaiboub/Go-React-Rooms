@@ -45,3 +45,12 @@ func (s *SessionStore) Delete(ctx context.Context, sessionID string) error {
 	key := s.KeyPrefix + sessionID
 	return s.Redis.Del(ctx, key).Err()
 }
+
+func (s *SessionStore) Get(ctx context.Context, sessionID string) (string, error) {
+	key := s.KeyPrefix + sessionID
+	userID, err := s.Redis.Get(ctx, key).Result()
+	if err == redis.Nil {
+		return "", errors.New("session not found")
+	}
+	return userID, err
+}
