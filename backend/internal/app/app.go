@@ -3,12 +3,14 @@ package app
 import (
 	"errors"
 	"go-react-rooms/internal/auth"
+	"go-react-rooms/internal/auth/routes"
 	"go-react-rooms/internal/cache"
 	"go-react-rooms/internal/config"
 	"go-react-rooms/internal/db"
 	"go-react-rooms/internal/debug"
 	"go-react-rooms/internal/health"
 	"go-react-rooms/internal/httpserver"
+	"go-react-rooms/internal/middleware"
 	"go-react-rooms/internal/repositories/users"
 	"net/http"
 	"time"
@@ -58,7 +60,9 @@ func New(cfg config.Config) (*App, error) {
 	mux.HandleFunc("/auth/register", authHandler.Register)
 	mux.HandleFunc("/auth/login", authHandler.Login)
 	mux.HandleFunc("/auth/logout", authHandler.Logout)
-	mux.HandleFunc("/me", auth.Me(sessionStore, userRepo))
+
+	meHandler := http.HandlerFunc(routes.Me(userRepo))
+	mux.Handle("/me", middleware.RequireAuth(sessionStore, meHandler))
 
 	handler := httpserver.NewHandler(httpserver.CORSConfig{
 		Origins: cfg.CorsOrigin,

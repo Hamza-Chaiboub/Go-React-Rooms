@@ -1,20 +1,20 @@
-package auth
+package routes
 
 import (
 	"go-react-rooms/internal/functions"
+	"go-react-rooms/internal/middleware"
 	"go-react-rooms/internal/repositories/users"
 	"net/http"
 )
 
-func Me(sessionStore *SessionStore, usersRepo users.Repo) http.HandlerFunc {
+func Me(usersRepo users.Repo) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		sessionID := r.Header.Get("X-Session-Token")
-		if sessionID == "" {
-			functions.WriteError(w, http.StatusUnauthorized, "missing session token")
+		userID, ok := middleware.UserIDFromContext(r.Context())
+		if !ok {
+			functions.WriteError(w, http.StatusUnauthorized, "unauthorized")
 			return
 		}
-		sid, _ := sessionStore.Get(r.Context(), sessionID)
-		u, err := usersRepo.GetUserById(r.Context(), sid)
+		u, err := usersRepo.GetUserById(r.Context(), userID)
 		if err != nil {
 			functions.WriteError(w, http.StatusUnauthorized, "unauthorized")
 			return
