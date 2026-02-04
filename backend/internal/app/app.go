@@ -2,12 +2,16 @@ package app
 
 import (
 	"errors"
+	"go-react-rooms/internal/auth"
+	"go-react-rooms/internal/auth/routes"
 	"go-react-rooms/internal/cache"
 	"go-react-rooms/internal/config"
 	"go-react-rooms/internal/db"
 	"go-react-rooms/internal/debug"
 	"go-react-rooms/internal/health"
 	"go-react-rooms/internal/httpserver"
+	"go-react-rooms/internal/middleware"
+	"go-react-rooms/internal/repositories/users"
 	"net/http"
 	"time"
 )
@@ -45,6 +49,20 @@ func New(cfg config.Config) (*App, error) {
 		Redis: rd.Client,
 	}))
 	mux.HandleFunc("/debug/dbtime", debug.DBTime(pg.DB))
+	userRepo := users.Repo{
+		DB: pg.DB,
+	}
+	sessionStore := auth.NewSessionStore(rd.Client)
+	authHandler := auth.Handlers{
+		Users:    userRepo,
+		Sessions: sessionStore,
+	}
+	mux.HandleFunc("/auth/register", authHandler.Register)
+	mux.HandleFunc("/auth/login", authHandler.Login)
+	mux.HandleFunc("/auth/logout", authHandler.Logout)
+
+	meHandler := http.HandlerFunc(routes.Me(userRepo))
+	mux.Handle("/me", middleware.RequireAuth(sessionStore, meHandler))
 
 	handler := httpserver.NewHandler(httpserver.CORSConfig{
 		Origins: cfg.CorsOrigin,
@@ -52,6 +70,8 @@ func New(cfg config.Config) (*App, error) {
 
 	return &App{
 		Config:  cfg,
+		DB:      pg,
+		Redis:   rd,
 		Handler: handler,
 	}, nil
 }
