@@ -47,6 +47,7 @@ func New(cfg config.Config) (*App, error) {
 	csrfH := security.CSRFHandlers{
 		Opt: security.CSRFCookieOptions(cfg.AppEnv),
 	}
+	rateLimiter := security.NewRateLimiter(rd.Client)
 	//Issue CSRF cookie/token
 	mux.HandleFunc("/auth/csrf", csrfH.Issue)
 
@@ -68,11 +69,13 @@ func New(cfg config.Config) (*App, error) {
 	var registerHandler http.Handler
 	registerHandler = http.HandlerFunc(authHandler.Register)
 	registerHandler = security.CSRFMiddleware(registerHandler)
+	registerHandler = security.RateLimitMiddleware(rateLimiter, "register", 5, 10*time.Minute, registerHandler)
 	mux.Handle("/auth/register", registerHandler)
 	//Login
 	var loginHandler http.Handler
 	loginHandler = http.HandlerFunc(authHandler.Login)
 	loginHandler = security.CSRFMiddleware(loginHandler)
+	loginHandler = security.RateLimitMiddleware(rateLimiter, "login", 10, 5*time.Minute, loginHandler)
 	mux.Handle("/auth/login", loginHandler)
 	//Logout
 	var logoutHandler http.Handler
