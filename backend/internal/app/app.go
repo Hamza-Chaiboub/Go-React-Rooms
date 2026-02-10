@@ -12,6 +12,7 @@ import (
 	"go-react-rooms/internal/httpserver"
 	"go-react-rooms/internal/middleware"
 	"go-react-rooms/internal/repositories/users"
+	"go-react-rooms/internal/security"
 	"net/http"
 	"time"
 )
@@ -43,6 +44,12 @@ func New(cfg config.Config) (*App, error) {
 
 	mux := http.NewServeMux()
 
+	csrfH := security.CSRFHandlers{
+		Opt: security.CSRFCookieOptions(cfg.AppEnv),
+	}
+	//Issue CSRF cookie/token
+	mux.HandleFunc("/auth/csrf", csrfH.Issue)
+
 	mux.HandleFunc("/health/live", health.Live)
 	mux.HandleFunc("/health/ready", health.Ready(health.Deps{
 		DB:    pg.DB,
@@ -57,11 +64,23 @@ func New(cfg config.Config) (*App, error) {
 		Users:    userRepo,
 		Sessions: sessionStore,
 	}
-	mux.HandleFunc("/auth/register", authHandler.Register)
-	mux.HandleFunc("/auth/login", authHandler.Login)
-	mux.HandleFunc("/auth/logout", authHandler.Logout)
+	//Register
+	var registerHandler http.Handler
+	registerHandler = http.HandlerFunc(authHandler.Register)
+	registerHandler = security.CSRFMiddleware(registerHandler)
+	mux.Handle("/auth/register", registerHandler)
+	//Login
+	var loginHandler http.Handler
+	loginHandler = http.HandlerFunc(authHandler.Login)
+	loginHandler = security.CSRFMiddleware(loginHandler)
+	mux.Handle("/auth/login", loginHandler)
+	//Logout
+	var logoutHandler http.Handler
+	logoutHandler = http.HandlerFunc(authHandler.Logout)
+	logoutHandler = security.CSRFMiddleware(logoutHandler)
+	mux.Handle("/auth/logout", logoutHandler)
 
-	meHandler := http.HandlerFunc(routes.Me(userRepo))
+	meHandler := routes.Me(userRepo)
 	mux.Handle("/me", middleware.RequireAuth(sessionStore, meHandler))
 
 	handler := httpserver.NewHandler(httpserver.CORSConfig{
