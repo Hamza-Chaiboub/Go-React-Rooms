@@ -76,6 +76,7 @@ func New(cfg config.Config) (*App, error) {
 	loginHandler = http.HandlerFunc(authHandler.Login)
 	loginHandler = security.CSRFMiddleware(loginHandler)
 	loginHandler = security.RateLimitMiddleware(rateLimiter, "login", 10, 5*time.Minute, loginHandler)
+	loginHandler = security.BodyLimit(1<<20, loginHandler)
 	mux.Handle("/auth/login", loginHandler)
 	//Logout
 	var logoutHandler http.Handler
