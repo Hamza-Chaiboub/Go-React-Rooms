@@ -70,6 +70,7 @@ func New(cfg config.Config) (*App, error) {
 	registerHandler = http.HandlerFunc(authHandler.Register)
 	registerHandler = security.CSRFMiddleware(registerHandler)
 	registerHandler = security.RateLimitMiddleware(rateLimiter, "register", 5, 10*time.Minute, registerHandler)
+	registerHandler = security.BodyLimit(1<<20, registerHandler)
 	mux.Handle("/auth/register", registerHandler)
 	//Login
 	var loginHandler http.Handler
@@ -87,9 +88,14 @@ func New(cfg config.Config) (*App, error) {
 	meHandler := routes.Me(userRepo)
 	mux.Handle("/me", middleware.RequireAuth(sessionStore, meHandler))
 
-	handler := httpserver.NewHandler(httpserver.CORSConfig{
+	var handler http.Handler = mux
+	//handler := httpserver.NewHandler(httpserver.CORSConfig{
+	//	Origins: cfg.CorsOrigin,
+	//}, mux)
+	handler = security.SecurityHeaders(handler)
+	handler = httpserver.NewHandler(httpserver.CORSConfig{
 		Origins: cfg.CorsOrigin,
-	}, mux)
+	}, handler)
 
 	return &App{
 		Config:  cfg,
