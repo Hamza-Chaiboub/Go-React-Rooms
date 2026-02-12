@@ -13,6 +13,7 @@ import (
 	"go-react-rooms/internal/middleware"
 	"go-react-rooms/internal/repositories/users"
 	"go-react-rooms/internal/security"
+	"go-react-rooms/internal/ws"
 	"net/http"
 	"time"
 )
@@ -87,6 +88,12 @@ func New(cfg config.Config) (*App, error) {
 
 	meHandler := routes.Me(userRepo)
 	mux.Handle("/me", middleware.RequireAuth(sessionStore, meHandler))
+
+	// websockets
+	hub := ws.NewHub()
+	go hub.Run()
+	wsHandler := ws.NewHandler(hub, sessionStore)
+	mux.Handle("/ws", wsHandler)
 
 	var handler http.Handler = mux
 	//handler := httpserver.NewHandler(httpserver.CORSConfig{
