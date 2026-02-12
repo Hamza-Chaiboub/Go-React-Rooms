@@ -8,6 +8,7 @@ import (
 	"go-react-rooms/internal/config"
 	"go-react-rooms/internal/db"
 	"go-react-rooms/internal/debug"
+	"go-react-rooms/internal/functions"
 	"go-react-rooms/internal/health"
 	"go-react-rooms/internal/httpserver"
 	"go-react-rooms/internal/middleware"
@@ -103,6 +104,7 @@ func New(cfg config.Config) (*App, error) {
 	handler = httpserver.NewHandler(httpserver.CORSConfig{
 		Origins: cfg.CorsOrigin,
 	}, handler)
+	handler = withRecover(handler)
 
 	return &App{
 		Config:  cfg,
@@ -127,4 +129,16 @@ func (a *App) Close() {
 	if a.DB != nil {
 		_ = a.DB.DB.Close()
 	}
+}
+
+func withRecover(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer func() {
+			if rec := recover(); rec != nil {
+				functions.WriteError(w, http.StatusInternalServerError, "server error")
+				return
+			}
+		}()
+		next.ServeHTTP(w, r)
+	})
 }
