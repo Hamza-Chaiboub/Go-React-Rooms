@@ -1,5 +1,6 @@
 import './App.css'
 import {useEffect, useState} from "react";
+import {apiFetch} from "./api/api.ts";
 
 
 type HealthResponse = {
@@ -19,7 +20,7 @@ function App() {
           try {
               setError(null);
 
-              const res = await fetch(`${apiUrl}/health`, {
+              const res = await apiFetch(`${apiUrl}`, "/health/live" , {
                   method: "GET",
                   credentials: "include",
               });
