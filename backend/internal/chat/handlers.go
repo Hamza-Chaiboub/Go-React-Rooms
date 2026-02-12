@@ -44,3 +44,32 @@ func (handler Handlers) CreateRoom(w http.ResponseWriter, r *http.Request) {
 
 	functions.WriteJSON(w, http.StatusCreated, room)
 }
+
+func (handler Handlers) ListRooms(w http.ResponseWriter, r *http.Request) {
+	userID, ok := middleware.UserIDFromContext(r.Context())
+	if !ok {
+		functions.WriteError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
+	items, err := handler.Rooms.ListForUser(r.Context(), userID)
+	if err != nil {
+		functions.WriteError(w, http.StatusInternalServerError, "could not list rooms")
+		return
+	}
+
+	functions.WriteJSON(w, http.StatusOK, map[string]any{
+		"rooms": items,
+	})
+}
+
+func (handler Handlers) HandleRooms(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		handler.ListRooms(w, r)
+	case http.MethodPost:
+		handler.CreateRoom(w, r)
+	default:
+		functions.WriteError(w, http.StatusMethodNotAllowed, "method not allowed")
+	}
+}

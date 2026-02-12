@@ -98,17 +98,15 @@ func New(cfg config.Config) (*App, error) {
 	wsHandler := ws.NewHandler(hub, sessionStore)
 	mux.Handle("/ws", wsHandler)
 
-	// create room
+	// create/list room(s)
 	roomRepo := rooms.Repo{
 		DB: pg.DB,
 	}
 	roomHandler := chat.Handlers{
 		Rooms: roomRepo,
 	}
-	var createRoomHandler http.Handler
-	createRoomHandler = http.HandlerFunc(roomHandler.CreateRoom)
-	createRoomHandler = middleware.RequireAuth(sessionStore, createRoomHandler)
-	mux.Handle("/rooms", createRoomHandler)
+	roomsHandler := middleware.RequireAuth(sessionStore, http.HandlerFunc(roomHandler.HandleRooms))
+	mux.Handle("/rooms", roomsHandler)
 
 	var handler http.Handler = mux
 	//handler := httpserver.NewHandler(httpserver.CORSConfig{
