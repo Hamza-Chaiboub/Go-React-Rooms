@@ -5,14 +5,18 @@ import (
 	"go-react-rooms/internal/auth"
 	"go-react-rooms/internal/auth/routes"
 	"go-react-rooms/internal/cache"
+	"go-react-rooms/internal/chat"
 	"go-react-rooms/internal/config"
 	"go-react-rooms/internal/db"
 	"go-react-rooms/internal/debug"
+	"go-react-rooms/internal/functions"
 	"go-react-rooms/internal/health"
 	"go-react-rooms/internal/httpserver"
 	"go-react-rooms/internal/middleware"
+	"go-react-rooms/internal/repositories/rooms"
 	"go-react-rooms/internal/repositories/users"
 	"go-react-rooms/internal/security"
+	"go-react-rooms/internal/ws"
 	"net/http"
 	"time"
 )
@@ -70,6 +74,7 @@ func New(cfg config.Config) (*App, error) {
 	registerHandler = http.HandlerFunc(authHandler.Register)
 	registerHandler = security.CSRFMiddleware(registerHandler)
 	registerHandler = security.RateLimitMiddleware(rateLimiter, "register", 5, 10*time.Minute, registerHandler)
+	registerHandler = security.BodyLimit(1<<20, registerHandler)
 	mux.Handle("/auth/register", registerHandler)
 	//Login
 	var loginHandler http.Handler
@@ -87,9 +92,37 @@ func New(cfg config.Config) (*App, error) {
 	meHandler := routes.Me(userRepo)
 	mux.Handle("/me", middleware.RequireAuth(sessionStore, meHandler))
 
-	handler := httpserver.NewHandler(httpserver.CORSConfig{
+	// websockets
+	hub := ws.NewHub()
+	go hub.Run()
+	wsHandler := ws.NewHandler(hub, sessionStore)
+	mux.Handle("/ws", wsHandler)
+
+	// create/list room(s)
+	roomRepo := rooms.Repo{
+		DB: pg.DB,
+	}
+	roomHandler := chat.Handlers{
+		Rooms: roomRepo,
+	}
+	roomsHandler := middleware.RequireAuth(sessionStore, http.HandlerFunc(roomHandler.HandleRooms))
+	mux.Handle("/rooms", roomsHandler)
+
+	// add member to room
+	var addToRoomHandler http.Handler
+	addToRoomHandler = http.HandlerFunc(roomHandler.JoinRoom)
+	addToRoomHandler = middleware.RequireAuth(sessionStore, addToRoomHandler)
+	mux.Handle("/room/join", addToRoomHandler)
+	
+	var handler http.Handler = mux
+	//handler := httpserver.NewHandler(httpserver.CORSConfig{
+	//	Origins: cfg.CorsOrigin,
+	//}, mux)
+	handler = security.SecurityHeaders(handler)
+	handler = httpserver.NewHandler(httpserver.CORSConfig{
 		Origins: cfg.CorsOrigin,
-	}, mux)
+	}, handler)
+	handler = withRecover(handler)
 
 	return &App{
 		Config:  cfg,
@@ -114,4 +147,16 @@ func (a *App) Close() {
 	if a.DB != nil {
 		_ = a.DB.DB.Close()
 	}
+}
+
+func withRecover(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer func() {
+			if rec := recover(); rec != nil {
+				functions.WriteError(w, http.StatusInternalServerError, "server error")
+				return
+			}
+		}()
+		next.ServeHTTP(w, r)
+	})
 }

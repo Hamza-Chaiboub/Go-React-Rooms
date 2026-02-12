@@ -3,6 +3,7 @@ module go-react-rooms
 go 1.25
 
 require (
+	github.com/gorilla/websocket v1.5.3
 	github.com/lib/pq v1.11.1
 	github.com/redis/go-redis/v9 v9.17.3
 	golang.org/x/crypto v0.47.0
