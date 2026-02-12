@@ -5,6 +5,7 @@ import (
 	"go-react-rooms/internal/auth"
 	"go-react-rooms/internal/auth/routes"
 	"go-react-rooms/internal/cache"
+	"go-react-rooms/internal/chat"
 	"go-react-rooms/internal/config"
 	"go-react-rooms/internal/db"
 	"go-react-rooms/internal/debug"
@@ -12,6 +13,7 @@ import (
 	"go-react-rooms/internal/health"
 	"go-react-rooms/internal/httpserver"
 	"go-react-rooms/internal/middleware"
+	"go-react-rooms/internal/repositories/rooms"
 	"go-react-rooms/internal/repositories/users"
 	"go-react-rooms/internal/security"
 	"go-react-rooms/internal/ws"
@@ -95,6 +97,18 @@ func New(cfg config.Config) (*App, error) {
 	go hub.Run()
 	wsHandler := ws.NewHandler(hub, sessionStore)
 	mux.Handle("/ws", wsHandler)
+
+	// create room
+	roomRepo := rooms.Repo{
+		DB: pg.DB,
+	}
+	roomHandler := chat.Handlers{
+		Rooms: roomRepo,
+	}
+	var createRoomHandler http.Handler
+	createRoomHandler = http.HandlerFunc(roomHandler.CreateRoom)
+	createRoomHandler = middleware.RequireAuth(sessionStore, createRoomHandler)
+	mux.Handle("/rooms", createRoomHandler)
 
 	var handler http.Handler = mux
 	//handler := httpserver.NewHandler(httpserver.CORSConfig{
