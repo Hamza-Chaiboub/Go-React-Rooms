@@ -108,6 +108,12 @@ func New(cfg config.Config) (*App, error) {
 	roomsHandler := middleware.RequireAuth(sessionStore, http.HandlerFunc(roomHandler.HandleRooms))
 	mux.Handle("/rooms", roomsHandler)
 
+	// add member to room
+	var addToRoomHandler http.Handler
+	addToRoomHandler = http.HandlerFunc(roomHandler.JoinRoom)
+	addToRoomHandler = middleware.RequireAuth(sessionStore, addToRoomHandler)
+	mux.Handle("/room/join", addToRoomHandler)
+	
 	var handler http.Handler = mux
 	//handler := httpserver.NewHandler(httpserver.CORSConfig{
 	//	Origins: cfg.CorsOrigin,
