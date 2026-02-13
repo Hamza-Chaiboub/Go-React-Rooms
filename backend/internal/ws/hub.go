@@ -1,13 +1,14 @@
 package ws
 
-import "time"
-
 type Envelope struct {
-	Type string `json:"type"`
-	Room string `json:"room,omitempty"`
-	Text string `json:"text,omitempty"`
-	From string `json:"from,omitempty"`
-	TS   string `json:"ts,omitempty"`
+	Type        string `json:"type"`
+	Room        string `json:"room,omitempty"`
+	Text        string `json:"text,omitempty"`
+	ClientMsgID string `json:"clientMsgId,omitempty"`
+	MessageID   string `json:"messageId,omitempty"`
+	From        string `json:"from,omitempty"`
+	TS          string `json:"ts,omitempty"`
+	Error       string `json:"error"`
 }
 
 type Client struct {
@@ -64,15 +65,9 @@ func (hub *Hub) Run() {
 	}
 }
 
-func (hub *Hub) Broadcast(room string, from string, text string) {
+func (hub *Hub) Broadcast(room string, msg Envelope) {
 	hub.broadcast <- broadcastMsg{
 		room: room,
-		msg: Envelope{
-			Type: "message",
-			Room: room,
-			Text: text,
-			From: from,
-			TS:   time.Now().UTC().Format(time.RFC3339),
-		},
+		msg:  msg,
 	}
 }

@@ -49,7 +49,7 @@ func (repo Repo) IsMember(ctx context.Context, roomID string, userID string) (bo
 	err := repo.DB.QueryRowContext(ctx, `
 		SELECT EXISTS(
 		    SELECT 1 FROM room_members
-		    WHERE room_id = $1::uuid AND user = $2::uuid
+		    WHERE room_id = $1::uuid AND user_id = $2::uuid
 		)`, roomID, userID).Scan(&exists)
 	return exists, err
 }
