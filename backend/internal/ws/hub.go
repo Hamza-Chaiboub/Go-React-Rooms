@@ -8,7 +8,7 @@ type Envelope struct {
 	MessageID   string `json:"messageId,omitempty"`
 	From        string `json:"from,omitempty"`
 	TS          string `json:"ts,omitempty"`
-	Error       string `json:"error"`
+	Error       string `json:"error,omitempty"`
 }
 
 type Client struct {
