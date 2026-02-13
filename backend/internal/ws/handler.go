@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"go-react-rooms/internal/auth"
 	"go-react-rooms/internal/functions"
+	"go-react-rooms/internal/repositories/messages"
+	"go-react-rooms/internal/repositories/rooms"
 	"net/http"
 	"strings"
 	"time"
@@ -16,9 +18,11 @@ type Handler struct {
 	Upgrader websocket.Upgrader
 	Hub      *Hub
 	Sessions *auth.SessionStore
+	Messages messages.Repo
+	Rooms    rooms.Repo
 }
 
-func NewHandler(hub *Hub, sessions *auth.SessionStore) *Handler {
+func NewHandler(hub *Hub, sessions *auth.SessionStore, roomsRepo rooms.Repo, msgRepo messages.Repo) *Handler {
 	return &Handler{
 		Upgrader: websocket.Upgrader{
 			CheckOrigin: func(r *http.Request) bool {
@@ -31,10 +35,12 @@ func NewHandler(hub *Hub, sessions *auth.SessionStore) *Handler {
 		},
 		Hub:      hub,
 		Sessions: sessions,
+		Rooms:    roomsRepo,
+		Messages: msgRepo,
 	}
 }
 
-func (handler Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (handler *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	//	read session cookie
 	cookie, err := r.Cookie(auth.CookieName)
 	if err != nil || cookie == nil || cookie.Value == "" {
@@ -62,7 +68,7 @@ func (handler Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	client := &Client{
 		UserID: userID,
 		Send:   make(chan Envelope, 16),
-		Room:   "main",
+		Room:   "",
 	}
 
 	handler.Hub.register <- client
@@ -71,14 +77,14 @@ func (handler Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	go writer(conn, client)
 
 	//	reader loop
-	reader(conn, handler.Hub, client)
+	reader(conn, handler, client)
 
 	//	cleanup
 	handler.Hub.unregister <- client
 	_ = conn.Close()
 }
 
-func reader(conn *websocket.Conn, hub *Hub, client *Client) {
+func reader(conn *websocket.Conn, handler *Handler, client *Client) {
 	defer func() {
 		_ = conn.Close()
 	}()
@@ -105,8 +111,16 @@ func reader(conn *websocket.Conn, hub *Hub, client *Client) {
 		case "join":
 			room := strings.TrimSpace(envelope.Room)
 			if room == "" {
-				room = "main"
+				sendErr(client, "room required")
+				continue
 			}
+
+			ok, err := handler.Rooms.IsMember(context.Background(), room, client.UserID)
+			if err != nil || !ok {
+				sendErr(client, err.Error())
+				continue
+			}
+
 			client.Room = room
 
 		case "message":
@@ -114,11 +128,37 @@ func reader(conn *websocket.Conn, hub *Hub, client *Client) {
 			if room == "" {
 				room = client.Room
 			}
+			if room == "" {
+				sendErr(client, "join a room first")
+				continue
+			}
+
+			// check membership
+			isMember, err := handler.Rooms.IsMember(context.Background(), room, client.UserID)
+			if err != nil || !isMember {
+				sendErr(client, err.Error())
+				continue
+			}
+
 			text := strings.TrimSpace(envelope.Text)
 			if text == "" {
 				continue
 			}
-			hub.Broadcast(room, client.UserID, text)
+
+			// persist message in the DB
+			message, err := handler.Messages.Insert(context.Background(), room, client.UserID, text)
+			if err != nil {
+				sendErr(client, "could not save message")
+				continue
+			}
+			handler.Hub.Broadcast(room, Envelope{
+				Type:      "message",
+				Room:      room,
+				Text:      message.Body,
+				From:      message.SenderID,
+				MessageID: message.ID,
+				TS:        message.CreatedAt.UTC().Format(time.RFC3339),
+			})
 		}
 	}
 }
@@ -142,5 +182,12 @@ func writer(conn *websocket.Conn, client *Client) {
 		case <-ticker.C:
 			_ = conn.WriteMessage(websocket.PingMessage, []byte{})
 		}
+	}
+}
+
+func sendErr(client *Client, msg string) {
+	select {
+	case client.Send <- Envelope{Type: "error", Error: msg}:
+	default:
 	}
 }

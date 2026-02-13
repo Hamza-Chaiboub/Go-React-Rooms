@@ -13,6 +13,7 @@ import (
 	"go-react-rooms/internal/health"
 	"go-react-rooms/internal/httpserver"
 	"go-react-rooms/internal/middleware"
+	"go-react-rooms/internal/repositories/messages"
 	"go-react-rooms/internal/repositories/rooms"
 	"go-react-rooms/internal/repositories/users"
 	"go-react-rooms/internal/security"
@@ -92,13 +93,10 @@ func New(cfg config.Config) (*App, error) {
 	meHandler := routes.Me(userRepo)
 	mux.Handle("/me", middleware.RequireAuth(sessionStore, meHandler))
 
-	// websockets
-	hub := ws.NewHub()
-	go hub.Run()
-	wsHandler := ws.NewHandler(hub, sessionStore)
-	mux.Handle("/ws", wsHandler)
-
 	// create/list room(s)
+	messagesRepo := messages.Repo{
+		DB: pg.DB,
+	}
 	roomRepo := rooms.Repo{
 		DB: pg.DB,
 	}
@@ -113,7 +111,13 @@ func New(cfg config.Config) (*App, error) {
 	addToRoomHandler = http.HandlerFunc(roomHandler.JoinRoom)
 	addToRoomHandler = middleware.RequireAuth(sessionStore, addToRoomHandler)
 	mux.Handle("/room/join", addToRoomHandler)
-	
+
+	// websockets
+	hub := ws.NewHub()
+	go hub.Run()
+	wsHandler := ws.NewHandler(hub, sessionStore, roomRepo, messagesRepo)
+	mux.Handle("/ws", wsHandler)
+
 	var handler http.Handler = mux
 	//handler := httpserver.NewHandler(httpserver.CORSConfig{
 	//	Origins: cfg.CorsOrigin,
