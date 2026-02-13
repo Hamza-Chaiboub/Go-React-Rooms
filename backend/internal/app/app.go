@@ -101,7 +101,8 @@ func New(cfg config.Config) (*App, error) {
 		DB: pg.DB,
 	}
 	roomHandler := chat.Handlers{
-		Rooms: roomRepo,
+		Rooms:    roomRepo,
+		Messages: messagesRepo,
 	}
 	roomsHandler := middleware.RequireAuth(sessionStore, http.HandlerFunc(roomHandler.HandleRooms))
 	mux.Handle("/rooms", roomsHandler)
@@ -111,6 +112,12 @@ func New(cfg config.Config) (*App, error) {
 	addToRoomHandler = http.HandlerFunc(roomHandler.JoinRoom)
 	addToRoomHandler = middleware.RequireAuth(sessionStore, addToRoomHandler)
 	mux.Handle("/room/join", addToRoomHandler)
+
+	// list messages
+	var listMessagesHandler http.Handler
+	listMessagesHandler = http.HandlerFunc(roomHandler.ListMessages)
+	listMessagesHandler = middleware.RequireAuth(sessionStore, listMessagesHandler)
+	mux.Handle("/room/messages", listMessagesHandler)
 
 	// websockets
 	hub := ws.NewHub()
