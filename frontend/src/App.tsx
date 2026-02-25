@@ -1,67 +1,39 @@
-import './App.css'
-import {useEffect, useState} from "react";
-import {apiFetch} from "./api/api.ts";
+import { BrowserRouter, Outlet, Route, Routes } from "react-router-dom"
+import Sidebar from "./components/Sidebar"
+import Dashboard from "./pages/Dashboard"
+import Chat from "./pages/Chat"
+import ProtectedRoutes from "./utils/ProtectedRoutes"
+import Login from "./pages/Login"
+import Logout from "./pages/Logout"
+import Register from "./pages/Register"
 
-
-type HealthResponse = {
-    status: string;
-    env: string;
-    time: string;
+function Layout() {
+    return (
+        <>
+            <Sidebar/>
+            <Outlet/>
+        </>
+    )
 }
 
 function App() {
-  const [data, setData] = useState<HealthResponse | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  const apiUrl = import.meta.env.VITE_API_URL as string;
-
-  useEffect(() => {
-      async function load() {
-          try {
-              setError(null);
-
-              const res = await apiFetch(`${apiUrl}`, "/health/live" , {
-                  method: "GET",
-                  credentials: "include",
-              });
-
-              if (!res.ok) {
-                  throw new Error(`HTTP ${res.status}`);
-              }
-
-              const json = (await res.json()) as HealthResponse;
-              setData(json);
-          } catch (e: any) {
-              setError(e.message ?? "Unknown error");
-          }
-      }
-
-      load();
-  }, [apiUrl]);
-
   return (
-    <div style={{ fontFamily: "system-ui",  padding: 24 }}>
-        <h1>Go-React-Rooms</h1>
-        <p>Health Check</p>
-
-        <div style={{ marginTop: 16, padding: 16, border: "1px solid #ddd", borderRadius: 8 }}>
-            <div><strong>API URL:</strong> {apiUrl}</div>
-
-            {error && (
-                <div style={{ marginTop: 12 }}>
-                    <strong>Error:</strong> {error}
-                </div>
-            )}
-
-            {data && (
-                <pre style={{ marginTop: 12, background: "#f6f6f6", padding: 12, borderRadius: 12 }}>
-                    {JSON.stringify(data, null, 2)}
-                </pre>
-            )}
-
-            {!error && !data && <div style={{ marginTop: 12 }}>Loading...</div>}
-        </div>
-    </div>
+    <>
+        <BrowserRouter>
+            <Routes>
+                <Route element={<ProtectedRoutes/>}>
+                    <Route element={<Layout/>}>
+                        <Route path="/dashboard" element={<Dashboard />} />
+                        <Route path="/" element={<Dashboard />} />
+                        <Route path="/chat" element={<Chat />} />
+                        <Route path="/logout" element={<Logout />} />
+                    </Route>
+                </Route>
+                <Route path="/login" element={<Login/>} />
+                <Route path="/register" element={<Register/>} />
+            </Routes>
+        </BrowserRouter>
+    </>
   )
 }
 

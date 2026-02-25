@@ -33,6 +33,8 @@ services:
       - .env
     environment:
       DATABASE_URL: "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable"
+#      useful when testing RDS
+#      DATABASE_URL: "postgres://${POSTGRES_USER_RDS}:${POSTGRES_PASSWORD_RDS}@${RDS_ENDPOINT}:${POSTGRES_PORT_RDS}/${POSTGRES_DB_RDS}?sslmode=require"
       REDIS_URL: "redis://redis:6379"
     ports:
       - "8080:${BACKEND_PORT}"
@@ -43,6 +45,9 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+#        useful when testing RDS
+#    extra_hosts:
+#      - "host.docker.internal:host-gateway"
 
   frontend:
     build:
@@ -67,6 +72,9 @@ services:
     volumes:
       - ./backend/migrations:/migrations
     entrypoint: ["migrate"]
+#        useful when testing RDS
+#    extra_hosts:
+#      - "host.docker.internal:host-gateway"
 
 volumes:
   pgdata:
