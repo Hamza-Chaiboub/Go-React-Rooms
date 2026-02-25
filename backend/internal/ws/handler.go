@@ -151,6 +151,7 @@ func reader(conn *websocket.Conn, handler *Handler, client *Client) {
 				sendErr(client, "could not save message")
 				continue
 			}
+			// broadcast persisted message
 			handler.Hub.Broadcast(room, Envelope{
 				Type:      "message",
 				Room:      room,
@@ -159,6 +160,15 @@ func reader(conn *websocket.Conn, handler *Handler, client *Client) {
 				MessageID: message.ID,
 				TS:        message.CreatedAt.UTC().Format(time.RFC3339),
 			})
+			//	ack sender
+			if envelope.ClientMsgID != "" {
+				client.Send <- Envelope{
+					Type:        "ack",
+					ClientMsgID: envelope.ClientMsgID,
+					MessageID:   message.ID,
+					TS:          message.CreatedAt.UTC().Format(time.RFC3339),
+				}
+			}
 		}
 	}
 }

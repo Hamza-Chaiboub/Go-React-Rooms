@@ -23,6 +23,7 @@ func Me(usersRepo users.Repo) http.HandlerFunc {
 		functions.WriteJSON(w, http.StatusOK, map[string]any{
 			"id":    u.ID,
 			"email": u.Email,
+			"name":  u.Name,
 		})
 	}
 }
