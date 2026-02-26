@@ -1,18 +1,18 @@
 import { Outlet, Navigate } from "react-router-dom"
 import { useProtectedRoutes } from "../hooks/useProtectedRoutes";
 
-interface ProtectedRoutesProps {
+interface GuestRoutesProps {
     redirectTo? : string;
 }
 
-const ProtectedRoutes = ({ redirectTo = "/login" } : ProtectedRoutesProps) => {    
+const GuestRoutes = ({ redirectTo = "/dashboard" } : GuestRoutesProps) => {    
     const [user, isLoading] = useProtectedRoutes()
 
     if (isLoading) {
         return <div>Loading ...</div>
     }
     
-    return user ? <Outlet/> : <Navigate to={redirectTo} />;
+    return user ?<Navigate to={redirectTo} /> : <Outlet/> ;
 }
 
-export default ProtectedRoutes
+export default GuestRoutes

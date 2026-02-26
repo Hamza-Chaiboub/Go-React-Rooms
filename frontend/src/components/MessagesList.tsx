@@ -46,7 +46,6 @@ function MessagesList() {
                 console.log(roomsData.rooms)
                 setLoaded(true)
 
-
             } catch (e) {
                 console.log("error fetching rooms: ", e)
             } finally {
@@ -72,16 +71,19 @@ function MessagesList() {
             </div>
             <div className="bg-zinc-200 dark:bg-zinc-100/50 w-full h-px mb-6"></div>
 
-            {loaded && rooms.map(room => (
-                <MessageContactItem
-                    picture={Avatar}
-                    name={room.name}
-                    message={room.lastMessage.body}
-                    sender={room.lastMessage.senderName}
-                    timestamp={convertDate(room.lastMessage.createdAt)}
-                    key={room.id}
-                />
-            ))}
+            {loaded ? (
+                (rooms && rooms.length > 0 ? (
+                    rooms.map(room => (
+                        <MessageContactItem
+                            picture={Avatar}
+                            name={room.name}
+                            message={room.lastMessage.body}
+                            sender={room.lastMessage.senderName}
+                            timestamp={convertDate(room.lastMessage.createdAt)}
+                            key={room.id}
+                        />
+                    ))) : (<p>No rooms found.</p>))
+            ) : (<p>Loading...</p>)}
         </div>
     )
 }

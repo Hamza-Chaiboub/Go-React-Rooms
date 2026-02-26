@@ -6,6 +6,7 @@ import ProtectedRoutes from "./utils/ProtectedRoutes"
 import Login from "./pages/Login"
 import Logout from "./pages/Logout"
 import Register from "./pages/Register"
+import GuestRoutes from "./utils/GuestRoutes"
 
 function Layout() {
     return (
@@ -29,8 +30,10 @@ function App() {
                         <Route path="/logout" element={<Logout />} />
                     </Route>
                 </Route>
-                <Route path="/login" element={<Login/>} />
-                <Route path="/register" element={<Register/>} />
+                <Route element={<GuestRoutes/>}>
+                    <Route path="/login" element={<Login/>} />
+                    <Route path="/register" element={<Register/>} />
+                </Route>
             </Routes>
         </BrowserRouter>
     </>
