@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { apiFetch } from "../api/api";
 import { Link, useNavigate } from "react-router-dom";
 import LogoMaster from '../assets/logo-master.png'
@@ -14,45 +14,8 @@ export default function Login() {
         password: ""
     })
     const [isSubmitting, setIsSubmitting] = useState(false)
-    const [, setUser] = useState(null)
     const apiUrl = import.meta.env.VITE_API_URL as string
     const navigate = useNavigate()
-
-    useEffect (() => {
-        if (isSubmitting) {
-            async function login() {
-                try {
-                    const res = await apiFetch(`${apiUrl}`, "/auth/login", {
-                        method: "POST",
-                        credentials: "include",
-                        headers: {
-                            "Content-Type": "application/json"
-                        },
-                        body: JSON.stringify({
-                            email: formData.email,
-                            password: formData.password
-                        })
-                    })
-
-                    if (!res.ok) {
-                        setUser(null)
-                        throw new Error(`HTTP ${res.status}`)
-                    }
-
-                    const userData = await res.json()
-                    setUser(userData)
-                    console.log("login success", userData)
-                    navigate("/dashboard")
-                } catch (e) {
-                    console.log("login error", e)
-                } finally {
-                    setIsSubmitting(false)
-                }
-            }
-
-            login()
-        }
-    }, [isSubmitting, formData])
 
     const handleForm = (e: any) => {
         setFormData({
@@ -61,10 +24,36 @@ export default function Login() {
         })
     }
 
-    const handleFormSubmission = (e: any) => {
+    const handleFormSubmission = async (e: React.SubmitEvent) => {
         e.preventDefault()
+        if (isSubmitting) return
+
         setIsSubmitting(true)
-        console.log(formData)
+
+        try {
+            const res = await apiFetch(`${apiUrl}`, "/auth/login", {
+                method: "POST",
+                credentials: "include",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    email: formData.email,
+                    password: formData.password
+                })
+            })
+
+            if (!res.ok) {
+                throw new Error(`HTTP ${res.status}`)
+            }
+
+            navigate("/dashboard")
+
+        } catch (e) {
+            console.log("login error", e)
+        } finally {
+            setIsSubmitting(false)
+        }
     }
 
     return (
