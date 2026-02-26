@@ -13,6 +13,11 @@ export const useProtectedRoutes = () => {
             try {
                 const res = await apiFetch(`${apiUrl}`, "/me")
 
+                if (res.status === 401) {
+                    if (!cancelled) setUser(null)
+                    return
+                }
+
                 if (!res.ok) {
                     if (!cancelled) setUser(null)
                     return
