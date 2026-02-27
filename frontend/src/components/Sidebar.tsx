@@ -7,7 +7,7 @@ import { Link } from 'react-router-dom';
 
 function Sidebar() {
     return (
-        <div className="flex flex-col h-screen p-4 w-64 border-r border-r-gray-200 dark:border-r-gray-200/50 fixed dark:bg-zinc-800">
+        <div className="flex flex-col h-screen p-4 w-64 border-r border-r-slate-200 dark:border-r-slate-200/50 fixed dark:bg-slate-950">
             <a href='/' className="flex-none pl-2">
                 <img src={LogoMaster} alt="" className='w-64 object-fill' />
             </a>
@@ -24,7 +24,7 @@ function Sidebar() {
                 <img src={Avatar} alt="" className='rounded-full w-12 h-12 object-cover mr-4' />
                 <div>
                     <p className='text-md dark:text-white'>Hamza</p>
-                    <Link to='/logout' className='text-xs text-gray-400'>Log out</Link>
+                    <Link to='/logout' className='text-xs text-slate-400'>Log out</Link>
                 </div>
             </div>
         </div>
