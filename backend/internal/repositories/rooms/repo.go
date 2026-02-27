@@ -7,6 +7,8 @@ import (
 	"go-react-rooms/internal/repositories/messages"
 	"strings"
 	"time"
+
+	"github.com/lib/pq"
 )
 
 type Room struct {
@@ -21,6 +23,8 @@ type Repo struct {
 	DB *sql.DB
 }
 
+var ErrRoomNameExists = errors.New("room name already existes")
+
 func (repo Repo) Create(ctx context.Context, name string, createdBy string) (Room, error) {
 	name = strings.TrimSpace(name)
 	if name == "" {
@@ -33,6 +37,14 @@ func (repo Repo) Create(ctx context.Context, name string, createdBy string) (Roo
 		VALUES ($1, $2::uuid)
 		RETURNING id::text, name, created_by::text, created_at
 		`, name, createdBy).Scan(&room.ID, &room.Name, &room.CreatedBy, &room.CreatedAt)
+
+	if err != nil {
+		var pgErr *pq.Error
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			return Room{}, ErrRoomNameExists
+		}
+		return Room{}, err
+	}
 
 	return room, err
 }

@@ -1,8 +1,14 @@
 import { useEffect, useState } from "react"
 import { apiFetch } from "../api/api"
 
+type userType = {
+    email: string;
+    id: string;
+    name: string;
+}
+
 export const useProtectedRoutes = () => {
-    const [user, setUser] = useState(null)
+    const [user, setUser] = useState<userType | null>(null)
     const [isLoading, setIsLoading] = useState(true)
     const apiUrl = import.meta.env.VITE_API_URL as string
 

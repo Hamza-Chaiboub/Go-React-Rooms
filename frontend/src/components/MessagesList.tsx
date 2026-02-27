@@ -84,6 +84,7 @@ function MessagesList() {
                             message={room.lastMessage?.body ?? "No messages yet"}
                             sender={room.lastMessage?.senderName}
                             timestamp={room.lastMessage?.createdAt ? convertDate(room.lastMessage?.createdAt) : "-"}
+                            createdBy={room.createdBy}
                             key={room.id}
                         />
                     ))) : (<div className="ml-2 flex flex-col items-center p-6 bg-blue-200 dark:bg-slate-900 rounded-xl shadow-xs">

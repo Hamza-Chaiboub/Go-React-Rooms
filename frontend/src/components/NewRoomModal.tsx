@@ -23,6 +23,7 @@ export const NewRoomModal = ({isOpen, handleClose, onSuccess} : NewRoomModaltype
     const apiUrl = import.meta.env.VITE_API_URL as string
     const [roomName, setRoomName] = useState<string>("")
     const [isSubmitting, setIsSubmitting] = useState<boolean>(false)
+    const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
     const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setRoomName(e.target.value)
@@ -30,6 +31,7 @@ export const NewRoomModal = ({isOpen, handleClose, onSuccess} : NewRoomModaltype
 
     const handleSubmit = async () => {
         setIsSubmitting(true)
+        setErrorMessage(null)
         try {
             const res = await apiFetch(`${apiUrl}`, "/rooms", {
                 method: "POST",
@@ -39,8 +41,14 @@ export const NewRoomModal = ({isOpen, handleClose, onSuccess} : NewRoomModaltype
             })
 
             if (!res.ok) {
-                console.log('level one not working', res.status)
-                return
+                let errorText = `Request failed with status ${res.status}`
+                try {
+                    const errorData =await res.json()
+                    errorText = errorData.error || errorData 
+                } catch {
+                    errorText = res.statusText || errorText
+                }
+                throw new Error(errorText)
             }
 
             handleClose()
@@ -49,6 +57,7 @@ export const NewRoomModal = ({isOpen, handleClose, onSuccess} : NewRoomModaltype
 
         } catch (error) {
             console.log('error creating room level two', error)
+            setErrorMessage(error instanceof Error ? error.message : "Unknown error")
         } finally {
             setIsSubmitting(false)
         }
@@ -69,9 +78,11 @@ export const NewRoomModal = ({isOpen, handleClose, onSuccess} : NewRoomModaltype
                     <h2 className='text-lg mb-4'>Room</h2>
                     <TextField
                         placeholder='Room (ex: Gaming)'
-                        className='bg-slate-100 dark:bg-slate-300 rounded-lg w-full'
+                        className='bg-slate-100 dark:bg-slate-300 rounded-lg w-full capitalize'
                         onChange={handleNameChange}
                         value={roomName}
+                        error={!!errorMessage}
+                        helperText={errorMessage}
                     />
                 </div>
                 <div className='flex flex-col gap-4 px-6 py-4 mt-4'>

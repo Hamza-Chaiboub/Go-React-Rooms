@@ -2,6 +2,7 @@ package chat
 
 import (
 	"encoding/json"
+	"errors"
 	"go-react-rooms/internal/functions"
 	"go-react-rooms/internal/middleware"
 	"go-react-rooms/internal/repositories/messages"
@@ -44,7 +45,11 @@ func (handler Handlers) CreateRoom(w http.ResponseWriter, r *http.Request) {
 
 	room, err := handler.Rooms.Create(r.Context(), req.Name, userID)
 	if err != nil {
-		functions.WriteError(w, http.StatusBadRequest, "could not create room")
+		if errors.Is(err, rooms.ErrRoomNameExists) {
+			functions.WriteError(w, http.StatusConflict, err.Error())
+			return
+		}
+		functions.WriteError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
