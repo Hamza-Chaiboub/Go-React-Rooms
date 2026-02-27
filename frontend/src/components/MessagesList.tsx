@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { apiFetch } from "../api/api";
 import { RoomsTopActionButton } from "./RoomsTopActionButton";
 import { NewRoomModal } from "./NewRoomModal";
-import { JoinRoomModal } from "./JoinRoomModal copy";
+import { JoinRoomModal } from "./JoinRoomModal";
 
 type Room = {
     id: string;
