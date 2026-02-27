@@ -91,13 +91,21 @@ func (handler Handlers) JoinRoom(w http.ResponseWriter, r *http.Request) {
 	}
 	req.RoomID = strings.TrimSpace(req.RoomID)
 	if req.RoomID == "" {
-		functions.WriteError(w, http.StatusBadRequest, "roomId required")
+		functions.WriteError(w, http.StatusBadRequest, "room Id required")
 		return
 	}
 
 	//	add member
 	if err := handler.Rooms.AddMember(r.Context(), req.RoomID, userID); err != nil {
-		functions.WriteError(w, http.StatusUnauthorized, "unauthorized")
+		if errors.Is(err, rooms.ErrRoomNotFound) {
+			functions.WriteError(w, http.StatusConflict, err.Error())
+			return
+		}
+		if errors.Is(err, rooms.ErrInvalidRoomId) {
+			functions.WriteError(w, http.StatusConflict, err.Error())
+			return
+		}
+		functions.WriteError(w, http.StatusUnauthorized, err.Error())
 		return
 	}
 

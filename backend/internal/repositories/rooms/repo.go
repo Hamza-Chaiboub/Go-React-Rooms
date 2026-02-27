@@ -24,6 +24,8 @@ type Repo struct {
 }
 
 var ErrRoomNameExists = errors.New("room name already existes")
+var ErrRoomNotFound = errors.New("no room found with entered ID")
+var ErrInvalidRoomId = errors.New("invalid room id")
 
 func (repo Repo) Create(ctx context.Context, name string, createdBy string) (Room, error) {
 	name = strings.TrimSpace(name)
@@ -55,6 +57,18 @@ func (repo Repo) AddMember(ctx context.Context, roomID string, userID string) er
 			VALUES ($1::uuid, $2::uuid)
 			ON CONFLICT (room_id, user_id) DO NOTHING
 			`, roomID, userID)
+
+	if err != nil {
+		var pgErr *pq.Error
+		if errors.As(err, &pgErr) && pgErr.Code == "23503" {
+			return ErrRoomNotFound
+		}
+		if errors.As(err, &pgErr) && pgErr.Code == "22P02" {
+			return ErrInvalidRoomId
+		}
+		return err
+	}
+
 	return err
 }
 
