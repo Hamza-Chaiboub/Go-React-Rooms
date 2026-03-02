@@ -1,9 +1,11 @@
+import { ChatRoom } from "../components/ChatRoom"
 import MessagesList from "../components/MessagesList"
 
 function Chat() {
     return (
-        <div className="ml-64 pt-8">
+        <div className="flex pl-16 md:pl-64 h-screen">
             <MessagesList />
+            <ChatRoom />
         </div>
     )
 }
