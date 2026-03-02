@@ -7,6 +7,8 @@ import (
 	"go-react-rooms/internal/repositories/messages"
 	"strings"
 	"time"
+
+	"github.com/lib/pq"
 )
 
 type Room struct {
@@ -21,6 +23,10 @@ type Repo struct {
 	DB *sql.DB
 }
 
+var ErrRoomNameExists = errors.New("room name already existes")
+var ErrRoomNotFound = errors.New("no room found with entered ID")
+var ErrInvalidRoomId = errors.New("invalid room id")
+
 func (repo Repo) Create(ctx context.Context, name string, createdBy string) (Room, error) {
 	name = strings.TrimSpace(name)
 	if name == "" {
@@ -34,6 +40,14 @@ func (repo Repo) Create(ctx context.Context, name string, createdBy string) (Roo
 		RETURNING id::text, name, created_by::text, created_at
 		`, name, createdBy).Scan(&room.ID, &room.Name, &room.CreatedBy, &room.CreatedAt)
 
+	if err != nil {
+		var pgErr *pq.Error
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			return Room{}, ErrRoomNameExists
+		}
+		return Room{}, err
+	}
+
 	return room, err
 }
 
@@ -43,6 +57,18 @@ func (repo Repo) AddMember(ctx context.Context, roomID string, userID string) er
 			VALUES ($1::uuid, $2::uuid)
 			ON CONFLICT (room_id, user_id) DO NOTHING
 			`, roomID, userID)
+
+	if err != nil {
+		var pgErr *pq.Error
+		if errors.As(err, &pgErr) && pgErr.Code == "23503" {
+			return ErrRoomNotFound
+		}
+		if errors.As(err, &pgErr) && pgErr.Code == "22P02" {
+			return ErrInvalidRoomId
+		}
+		return err
+	}
+
 	return err
 }
 

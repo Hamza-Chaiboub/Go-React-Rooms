@@ -1,6 +1,6 @@
 function Dashboard() {
     return (
-        <div className="ml-64 p-4">
+        <div className="pl-16 md:pl-64 p-4">
             Dashboard Here
         </div>
     )
