@@ -10,9 +10,10 @@ interface MessageContactItemProps {
     tailwindClasses?: string;
     isOnline?: boolean;
     createdBy: string;
+    onClick?: any
 }
 
-function MessageContactItem({picture, name, message, sender = "bot", timestamp, tailwindClasses = "", isOnline = true, createdBy} : MessageContactItemProps) {
+function MessageContactItem({picture, name, message, sender = "bot", timestamp, tailwindClasses = "", isOnline = true, createdBy, onClick} : MessageContactItemProps) {
     const [me,] = useProtectedRoutes()
     const mine = me?.id === createdBy
     const online = isOnline ? 'bg-green-500' : '';
@@ -22,7 +23,7 @@ function MessageContactItem({picture, name, message, sender = "bot", timestamp, 
     }
 
     return (
-        <div className={`p-4 rounded-2xl flex justify-between items-center w-11/12 cursor-pointer ml-2 text-black dark:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-900 ${tailwindClasses}`}>
+        <div onClick={onClick} className={`p-4 rounded-2xl flex justify-between items-center w-11/12 cursor-pointer ml-2 text-black dark:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-900 ${tailwindClasses}`}>
             <div className="flex gap-2 flex-1 min-w-0">
                 <div className="relative group">
                     <Avatar src={picture ?? ''} alt={name}>{picture ? '' : firstLetters(name)}</Avatar>
