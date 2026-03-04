@@ -5,21 +5,25 @@ type MessageType = {
   text?: string;
   time: string;
   avatar?: string;
+  sender?: string;
   file?: { name: string, meta: string };
 }
 
-export const Message = ({ side, text, time, avatar, file }: MessageType) => {
+export const Message = ({ side, sender, text, time, avatar, file }: MessageType) => {
   const isOut = side === "out"
   const hasFile = !!file?.name;
 
   return (
     <div className={`flex gap-2.5 my-2 items-end ${isOut ? "justify-end" : "justify-start"}`}>
       {!isOut && (
-        <img className="w-7 h-7 rounded-full object-cover" src={avatar || Avatar} alt="" />
+        <div>
+          <img className="w-7 h-7 rounded-full object-cover" src={avatar || Avatar} alt="" />
+          <p>{sender}</p>
+        </div>
       )}
 
       <div className={[
-        "relative max-w-[72%] md:max-w-160 rounded-2xl px-4 pt-3 pb-5 shadow-[0_10px_24px_rgba(15,23,42,0.06)]",
+        "relative min-w-[30%] max-w-[72%] md:max-w-160 rounded-2xl px-4 pt-3 pb-5 shadow-[0_10px_24px_rgba(15,23,42,0.06)]",
         isOut ? "bg-sky-500 text-white rounded-tr-lg" : "bg-slate-100 text-slate-900 rounded-tl-lg",
       ].join(" ")}>
         {hasFile ? (

@@ -8,7 +8,11 @@ import { JoinRoomModal } from "./JoinRoomModal";
 import { useWebSocket } from "../hooks/useWebSocket";
 import { TimeStampsHandler } from "../utils/TimeStampsHandler";
 
-type Props = { ws: ReturnType<typeof useWebSocket> }
+type Props = {
+    ws: ReturnType<typeof useWebSocket>;
+    selectedRoomId: string | null;
+    onSelectRoom: (id: string) => void;
+}
 
 type Room = {
     id: string;
@@ -26,7 +30,7 @@ type Room = {
     } | null
 }
 
-function MessagesList({ ws }: Props) {
+function MessagesList({ ws, selectedRoomId, onSelectRoom }: Props) {
 
     const apiUrl = import.meta.env.VITE_API_URL as string
     const [rooms, setRooms] = useState<Room[]>([])
@@ -40,6 +44,8 @@ function MessagesList({ ws }: Props) {
             type: "join",
             "room": roomId,
         })
+
+        onSelectRoom(roomId)
     }
 
     const refreshRooms = () => setRefreshTrigger(prev => prev + 1)
