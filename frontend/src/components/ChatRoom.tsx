@@ -2,98 +2,102 @@ import Avatar from "../assets/avatar.avif";
 import { ChatRoomHeader } from "./ChatRoomHeader";
 import { Message } from "./Message";
 import { MessageComposer } from "./MessageComposer";
+import { useWebSocket } from "../hooks/useWebSocket";
+import { TimeStampsHandler } from "../utils/TimeStampsHandler";
+import { useEffect, useMemo, useState } from "react";
+import { apiFetch } from "../api/api";
+import { useProtectedRoutes } from "../hooks/useProtectedRoutes";
 
-type Msg = {
-  id: string;
-  side: "in" | "out";
+type Envelope = {
+  type: "message" | "ack" | "error" | "join";
+  room?: string;
   text?: string;
-  time: string;
-  avatar?: string;
-  file?: { name: string; meta: string };
-};
+  from?: string;
+  ts?: string;
+  messageId?: string;
+  error?: string;
+  senderName: string;
+}
 
-const demo: Msg[] = [
-  {
-    id: "1",
-    side: "in",
-    text: "“Content here, content here”, making it look like readable English",
-    time: "10:54 pm",
-    avatar: Avatar,
-  },
-  {
-    id: "2",
-    side: "out",
-    text: "“Content here, content here”… making it look like readable English",
-    time: "10:54 pm",
-  },
-  {
-    id: "3",
-    side: "in",
-    text: "“Content here, content here”, making it look like readable English",
-    time: "10:54 pm",
-    avatar: Avatar,
-  },
-  {
-    id: "4",
-    side: "out",
-    time: "10:55 pm",
-    file: { name: "Brief.ppt", meta: "No virus, 50.54 MB" },
-  },
-  {
-    id: "5",
-    side: "out",
-    text: "“Content here, content here”… making it look like readable English",
-    time: "10:56 pm",
-  },
-  {
-    id: "6",
-    side: "in",
-    text: "“Content here, content here”… making it look like readable English",
-    time: "10:56 pm",
-  },
-  {
-    id: "7",
-    side: "out",
-    text: "“Content here, content here”… making it look like readable English",
-    time: "10:56 pm",
-  },
-  {
-    id: "8",
-    side: "out",
-    text: "“Content here, content here”… making it look like readable English",
-    time: "10:56 pm",
-  },
-  {
-    id: "9",
-    side: "out",
-    text: "“Content here, content here”… making it look like readable English",
-    time: "10:56 pm",
-  },
-  {
-    id: "10",
-    side: "in",
-    time: "10:55 pm",
-    file: { name: "Brief.ppt", meta: "No virus, 50.54 MB" },
-  },
-  {
-    id: "11",
-    side: "in",
-    time: "10:55 pm",
-    file: { name: "Brief.ppt", meta: "No virus, 50.54 MB" },
-  },
-];
+type ServerMsg = {
+  id: string;
+  body: string;
+  createdAt: string;
+  senderId: string;
+  senderName: string
+}
 
-export const ChatRoom = () => {
+export const ChatRoom = ({ ws, roomId }: {ws: ReturnType<typeof useWebSocket>; roomId: string | null}) => {
+  const apiUrl = import.meta.env.VITE_API_URL as string
+  const [history, setHistory] = useState<ServerMsg[]>([])
+  const [loading, setLoading] = useState(false)
+  const [me,] = useProtectedRoutes()
+
+  useEffect(() => {
+    if (!roomId) return;
+    setLoading(true);
+
+    (async () => {
+      const res = await apiFetch(apiUrl, `/rooms/messages?roomId=${roomId}&limit=4`)
+      const data = await res.json()
+
+      setHistory(data.messages)
+      console.log(data)
+      setLoading(false)
+    })().catch(() => setLoading(false))
+  }, [apiUrl, roomId])
+
+  const live = useMemo(() => {
+    return ws.messages
+      .filter((m): m is Envelope => typeof m === "object" && m !== null && "type" in m)
+      .filter((e) => e.type === "message" && e.room === roomId)
+  }, [ws.messages, roomId])
+
+  const merged = useMemo(() => {
+    const map = new Map<string, { id: string; text: string; ts: string; from: string; sender: string }>();
+
+    if (history) {
+      for (const m of history) {
+        map.set(m.id, { id: m.id, text: m.body, ts: m.createdAt, from: m.senderId, sender: m.senderName });
+      }
+    }
+    for (const e of live) {
+      if (!e.messageId) continue;
+      map.set(e.messageId, { id: e.messageId, text: e.text ?? "", ts: e.ts ?? "", from: e.from ?? "", sender: e.senderName });
+    }
+
+    return Array.from(map.values()).sort((a, b) => +new Date(a.ts) - +new Date(b.ts))
+  }, [history, live])
+
   return (
     <section className="w-full h-full min-h-0 bg-white overflow-hidden dark:bg-slate-950 flex flex-col">
-      <ChatRoomHeader />
-      <div className="bg-slate-200 dark:bg-slate-100/25 w-full h-px"></div>
-      <div className="flex-1 min-h-0 overflow-y-auto p-5 bg-white dark:bg-slate-900">
-        {demo.map((m) => {
-            return <Message id={m.id} side={m.side} text={m.text} time={m.time} avatar={m.avatar} file={m.file} />
-        })}
-      </div>
-      <MessageComposer />
+      {!roomId ? (
+          <div className="text-slate-500">Select a room</div>
+        ) : (loading ? (
+          <div className="text-slate-500">Loading...</div>
+        ) : (
+          <>
+          <ChatRoomHeader />
+          <div className="bg-slate-200 dark:bg-slate-100/25 w-full h-px"></div>
+          <div className="flex-1 min-h-0 overflow-y-auto p-5 bg-white dark:bg-slate-900">
+            
+            {merged.length > 0 ? merged.map((m) => (
+                <Message
+                  key={m.id ?? m.ts}
+                  sender={m.sender}
+                  side={me?.id === m.from ? "out" : "in"}
+                  text={m.text}
+                  time={TimeStampsHandler(m.ts ?? "") ?? ""}
+                  avatar={Avatar}
+                  file={{name: "", meta: ""}}
+                />
+            )) : (<div className="text-slate-500 bg-slate-100 p-4 rounded-lg">Empty</div>)}
+          </div>
+          <MessageComposer />
+          </>
+        )
+      )
+      }
     </section>
   );
 };

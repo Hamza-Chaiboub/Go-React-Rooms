@@ -153,12 +153,13 @@ func reader(conn *websocket.Conn, handler *Handler, client *Client) {
 			}
 			// broadcast persisted message
 			handler.Hub.Broadcast(room, Envelope{
-				Type:      "message",
-				Room:      room,
-				Text:      message.Body,
-				From:      message.SenderID,
-				MessageID: message.ID,
-				TS:        message.CreatedAt.UTC().Format(time.RFC3339),
+				Type:       "message",
+				Room:       room,
+				Text:       message.Body,
+				From:       message.SenderID,
+				MessageID:  message.ID,
+				TS:         message.CreatedAt.UTC().Format(time.RFC3339),
+				SenderName: message.SenderName,
 			})
 			//	ack sender
 			if envelope.ClientMsgID != "" {

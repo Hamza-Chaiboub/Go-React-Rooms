@@ -33,10 +33,21 @@ func (repo Repo) Insert(ctx context.Context, roomID, senderID, body string) (Mes
 
 	var message Message
 	err := repo.DB.QueryRowContext(ctx, `
-		INSERT INTO messages (room_id, sender_id, body)
-		VALUES ($1::uuid, $2::uuid, $3)
-		RETURNING id::text, room_id::text, sender_id::text, body, created_at
-		`, roomID, senderID, body).Scan(&message.ID, &message.RoomID, &message.SenderID, &message.Body, &message.CreatedAt)
+		WITH inserted AS (
+			INSERT INTO messages (room_id, sender_id, body)
+			VALUES ($1::uuid, $2::uuid, $3)
+			RETURNING id::text, room_id, sender_id, body, created_at
+		)
+		SELECT
+			inserted.id::text,
+			inserted.room_id::text,
+			inserted.sender_id::text,
+			inserted.body,
+			inserted.created_at,
+			users.name
+		FROM inserted
+		JOIN users ON users.id = inserted.sender_id
+		`, roomID, senderID, body).Scan(&message.ID, &message.RoomID, &message.SenderID, &message.Body, &message.CreatedAt, &message.SenderName)
 
 	return message, err
 }

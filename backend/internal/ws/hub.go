@@ -9,6 +9,7 @@ type Envelope struct {
 	From        string `json:"from,omitempty"`
 	TS          string `json:"ts,omitempty"`
 	Error       string `json:"error,omitempty"`
+	SenderName  string `json:"senderName,omitempty"`
 }
 
 type Client struct {

@@ -4,10 +4,13 @@ import { LuLayoutDashboard, LuFileStack, LuPhoneCall, LuMessageCircleMore, LuUse
 import { IoAnalyticsOutline } from "react-icons/io5";
 import SideLink from './SideLink';
 import { Link } from 'react-router-dom';
+import { useProtectedRoutes } from "../hooks/useProtectedRoutes";
 
 function Sidebar() {
     const [expanded, setExpanded] = useState(false);
     const rootRef = useRef<HTMLDivElement | null>(null);
+    const [me, ] = useProtectedRoutes()
+    const username = me?.name ?? "User"
 
     useEffect(() => {
         const onDown = (e: PointerEvent) => {
@@ -92,7 +95,7 @@ function Sidebar() {
                             expanded ? "block" : "hidden",
                         ].join(" ")}
                     >
-                        <p className="text-sm font-semibold text-slate-900 dark:text-white truncate">Hamza</p>
+                        <p className="text-sm font-semibold text-slate-900 dark:text-white truncate">{username}</p>
                         <Link to="/logout" className="text-xs text-slate-400 hover:text-slate-500">
                             Log out
                         </Link>
