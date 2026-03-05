@@ -27,12 +27,14 @@ type ServerMsg = {
   senderName: string
 }
 
-const LIMIT_MESSAGES_LOAD = 20
+const LIMIT_MESSAGES_LOAD = 4
 
 export const ChatRoom = ({ ws, roomId }: {ws: ReturnType<typeof useWebSocket>; roomId: string | null}) => {
   const apiUrl = import.meta.env.VITE_API_URL as string
   const [history, setHistory] = useState<ServerMsg[]>([])
   const [loading, setLoading] = useState(false)
+  const [loadMoreMessages, setLoadMoreMessages] = useState(false)
+  const [lastMessageId, setLastMessageId] = useState<string | null>(null)
   const [me,] = useProtectedRoutes()
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
@@ -40,9 +42,34 @@ export const ChatRoom = ({ ws, roomId }: {ws: ReturnType<typeof useWebSocket>; r
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }
 
+  const loadOldMessages = () => {
+    setLoadMoreMessages(true)
+    console.log("loading more...")
+  }
+
+  useEffect(() => {
+    if (!loadMoreMessages) return;
+    setLoadMoreMessages(true);
+
+    (async () => {
+      const res = await apiFetch(apiUrl, `/rooms/messages?roomId=${roomId}&before=${lastMessageId}&limit=${LIMIT_MESSAGES_LOAD}`)
+      const data = await res.json()
+
+      if (!data.messages) {
+        console.log("all loaded")
+        return
+      }
+
+      setHistory(prevHistory => [...data.messages, ...prevHistory])
+      setLastMessageId(data.nextBefore)
+
+      setLoadMoreMessages(false)
+    })().catch(() => setLoadMoreMessages(false))
+  }, [apiUrl, roomId, loadMoreMessages])
+
   useEffect(() => {
     scrollToBottom();
-  }, [ws.messages, history])
+  }, [ws.messages])
 
   useEffect(() => {
     if (!roomId) return;
@@ -53,6 +80,7 @@ export const ChatRoom = ({ ws, roomId }: {ws: ReturnType<typeof useWebSocket>; r
       const data = await res.json()
 
       setHistory(data.messages)
+      setLastMessageId(data.nextBefore)
       console.log(data)
       setLoading(false)
     })().catch(() => setLoading(false))
@@ -105,6 +133,7 @@ export const ChatRoom = ({ ws, roomId }: {ws: ReturnType<typeof useWebSocket>; r
             )) : (<div className="text-slate-500 bg-slate-100 p-4 rounded-lg">Empty</div>)}
             <div ref={messagesEndRef} />
           </div>
+          <button className="text-white" onClick={loadOldMessages}>load more</button>
           <MessageComposer ws={ws} roomId={roomId} />
           </>
         )
