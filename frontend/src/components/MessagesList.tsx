@@ -73,7 +73,7 @@ function MessagesList({ ws, selectedRoomId, onSelectRoom }: Props) {
         }
 
         getRooms()
-    }, [apiUrl, refreshTrigger])
+    }, [apiUrl, refreshTrigger, ws.messages])
 
     return (
         <div className="w-lg lg:border-r border-r-slate-200 dark:border-r-slate-100/25">

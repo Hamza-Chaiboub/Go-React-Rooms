@@ -43,7 +43,7 @@ export const Message = ({ side, sender, text, time, avatar, file }: MessageType)
             </button>
           </div>
         ) : (
-          <p className="m-0 text-sm leading-snug">{text}</p>
+          <p className="m-0 text-sm leading-snug whitespace-pre">{text}</p>
         )}
 
         <span className="absolute right-3 bottom-1.5 text-[11px] opacity-75">{time}</span>

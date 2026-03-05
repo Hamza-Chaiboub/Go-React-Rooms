@@ -4,7 +4,7 @@ import { Message } from "./Message";
 import { MessageComposer } from "./MessageComposer";
 import { useWebSocket } from "../hooks/useWebSocket";
 import { TimeStampsHandler } from "../utils/TimeStampsHandler";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { apiFetch } from "../api/api";
 import { useProtectedRoutes } from "../hooks/useProtectedRoutes";
 
@@ -27,18 +27,29 @@ type ServerMsg = {
   senderName: string
 }
 
+const LIMIT_MESSAGES_LOAD = 20
+
 export const ChatRoom = ({ ws, roomId }: {ws: ReturnType<typeof useWebSocket>; roomId: string | null}) => {
   const apiUrl = import.meta.env.VITE_API_URL as string
   const [history, setHistory] = useState<ServerMsg[]>([])
   const [loading, setLoading] = useState(false)
   const [me,] = useProtectedRoutes()
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [ws.messages, history])
 
   useEffect(() => {
     if (!roomId) return;
     setLoading(true);
 
     (async () => {
-      const res = await apiFetch(apiUrl, `/rooms/messages?roomId=${roomId}&limit=4`)
+      const res = await apiFetch(apiUrl, `/rooms/messages?roomId=${roomId}&limit=${LIMIT_MESSAGES_LOAD}`)
       const data = await res.json()
 
       setHistory(data.messages)
@@ -92,8 +103,9 @@ export const ChatRoom = ({ ws, roomId }: {ws: ReturnType<typeof useWebSocket>; r
                   file={{name: "", meta: ""}}
                 />
             )) : (<div className="text-slate-500 bg-slate-100 p-4 rounded-lg">Empty</div>)}
+            <div ref={messagesEndRef} />
           </div>
-          <MessageComposer />
+          <MessageComposer ws={ws} roomId={roomId} />
           </>
         )
       )
