@@ -73,10 +73,10 @@ function MessagesList({ ws, selectedRoomId, onSelectRoom }: Props) {
         }
 
         getRooms()
-    }, [apiUrl, refreshTrigger])
+    }, [apiUrl, refreshTrigger, ws.messages])
 
     return (
-        <div className="w-lg lg:border-r border-r-slate-200 dark:border-r-slate-100/25">
+        <div className="w-lg lg:border-r border-r-slate-200 dark:border-r-slate-100/25 flex-none">
             <div className="flex items-center justify-between px-4 py-8">
                 <h2 className="text-3xl dark:text-white">Messages</h2>
                 <div className="flex gap-4">
