@@ -15,6 +15,16 @@ export const MessageComposer = ({ ws, roomId }: {ws: ReturnType<typeof useWebSoc
         setMessage(e.target.value)
     }
 
+    const handleEnterKeyDown = (e: any) => {
+        if (e.key === 'Enter') {
+            if (!e.shiftKey) {
+                e.preventDefault()
+                sendMessageViaWebSocket()
+                console.log('enter key pressed')
+            }
+        }
+    }
+
     const sendMessageViaWebSocket = () => {
         setIsSending(true)
         if (message === "") return;
@@ -42,6 +52,7 @@ export const MessageComposer = ({ ws, roomId }: {ws: ReturnType<typeof useWebSoc
                     placeholder="Write a message…"
                     value={message}
                     onChange={handleMessageChange}
+                    onKeyDown={handleEnterKeyDown}
                 />
             </div>
 

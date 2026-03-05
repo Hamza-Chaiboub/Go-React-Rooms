@@ -18,7 +18,7 @@ export const Message = ({ side, sender, text, time, avatar, file }: MessageType)
       {!isOut && (
         <div>
           <img className="w-7 h-7 rounded-full object-cover" src={avatar || Avatar} alt="" />
-          <p>{sender}</p>
+          <p className='text-white text-xs truncate'>{sender?.split(' ')[0]}</p>
         </div>
       )}
 
