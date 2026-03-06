@@ -75,6 +75,35 @@ function MessagesList({ ws, selectedRoomId, onSelectRoom }: Props) {
         getRooms()
     }, [apiUrl, refreshTrigger, ws.messages])
 
+    useEffect(() => {
+        const len = ws.messages.length
+        if (len === 0) return;
+
+        const last = ws.messages[len - 1]
+        if (!last || typeof last !== 'object') return;
+
+        const e = last as any
+        if (e.type !== 'message' || !e.room) return;
+
+        setRooms(prev =>
+            prev.map(r => {
+                if (r.id !== e.room) return r;
+
+                return {
+                    ...r,
+                    lastMessage: {
+                        id: e.messageId ?? r.lastMessage?.id ?? "",
+                        roomId: e.room,
+                        body: e.text ?? "",
+                        createdAt: e.ts ?? new Date().toISOString(),
+                        senderId: e.from ?? "",
+                        senderName: e.senderName ?? "",
+                    }
+                }
+            })
+        )
+    }, [ws.messages])
+
     return (
         <div className="w-lg lg:border-r border-r-slate-200 dark:border-r-slate-100/25 flex-none">
             <div className="flex items-center justify-between px-4 py-8">
