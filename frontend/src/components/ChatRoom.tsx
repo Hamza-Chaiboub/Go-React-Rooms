@@ -104,6 +104,7 @@ export const ChatRoom = ({ ws, roomId }: {ws: ReturnType<typeof useWebSocket>; r
   }, [apiUrl, roomId])
 
   useEffect(() => {
+    if (!history) return;
     if (!loading && history.length > 0 && !initialScrollDone.current && scrollerRef.current) {
       scrollToBottom('auto')
       initialScrollDone.current = true
