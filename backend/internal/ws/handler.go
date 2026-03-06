@@ -74,6 +74,13 @@ func (handler *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	handler.Hub.register <- client
 
+	joinedRooms, err := handler.Rooms.ListForUser(context.Background(), userID)
+	if err == nil {
+		for _, room := range joinedRooms {
+			handler.Hub.Subscribe(client, room.ID)
+		}
+	}
+
 	//	start writer in bg
 	go writer(conn, client)
 
