@@ -12,6 +12,7 @@ type Props = {
     ws: ReturnType<typeof useWebSocket>;
     selectedRoomId: string | null;
     onSelectRoom: (id: string) => void;
+    getRoomName: (name: string) => void;
 }
 
 type Room = {
@@ -30,7 +31,7 @@ type Room = {
     } | null
 }
 
-function MessagesList({ ws, selectedRoomId, onSelectRoom }: Props) {
+function MessagesList({ ws, onSelectRoom, getRoomName }: Props) {
 
     const apiUrl = import.meta.env.VITE_API_URL as string
     const [rooms, setRooms] = useState<Room[]>([])
@@ -39,13 +40,15 @@ function MessagesList({ ws, selectedRoomId, onSelectRoom }: Props) {
     const [refreshTrigger, setRefreshTrigger] = useState<number>(0)
     const { sendJson } = ws;
 
-    const handleJoinRoom = (roomId: string) => {
+    const handleJoinRoom = (roomId: string, roomName: string) => {
         sendJson({
             type: "join",
-            "room": roomId,
+            room: roomId,
         })
 
         onSelectRoom(roomId)
+        getRoomName(roomName)
+        history.replaceState(null, "", `/chat/room?name=${roomName}&id=${roomId}`)
     }
 
     const refreshRooms = () => setRefreshTrigger(prev => prev + 1)
@@ -65,6 +68,12 @@ function MessagesList({ ws, selectedRoomId, onSelectRoom }: Props) {
                 console.log(roomsData.rooms)
                 setLoaded(true)
 
+                const urlParams = new URLSearchParams(window.location.search)
+
+                if (urlParams.has("name") && urlParams.has("id") && urlParams.get("name") && urlParams.get("id")) {
+                    handleJoinRoom(urlParams.get("id") ?? '', urlParams.get("name") ?? '')
+                }
+
             } catch (e) {
                 console.log("error fetching rooms: ", e)
             } finally {
@@ -73,7 +82,7 @@ function MessagesList({ ws, selectedRoomId, onSelectRoom }: Props) {
         }
 
         getRooms()
-    }, [apiUrl, refreshTrigger, ws.messages])
+    }, [apiUrl, refreshTrigger])
 
     useEffect(() => {
         const len = ws.messages.length
@@ -129,7 +138,8 @@ function MessagesList({ ws, selectedRoomId, onSelectRoom }: Props) {
                             timestamp={room.lastMessage?.createdAt ? TimeStampsHandler(room.lastMessage?.createdAt) : "-"}
                             createdBy={room.createdBy}
                             key={room.id}
-                            onClick={() => handleJoinRoom(room.id)}
+                            onClick={() => handleJoinRoom(room.id, room.name)}
+                            id={room.id}
                         />
                     ))) : (<div className="mx-2 flex flex-col items-center p-6 bg-blue-200 dark:bg-slate-900 rounded-xl shadow-xs">
                             <h5 className="mb-3 text-slate-600 text-2xl font-semibold tracking-tight dark:text-slate-200/75">No Rooms Found</h5>
