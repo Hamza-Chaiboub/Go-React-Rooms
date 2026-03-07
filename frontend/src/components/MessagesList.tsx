@@ -105,7 +105,7 @@ function MessagesList({ ws, selectedRoomId, onSelectRoom }: Props) {
     }, [ws.messages])
 
     return (
-        <div className="w-lg lg:border-r border-r-slate-200 dark:border-r-slate-100/25 flex-none">
+        <div className="w-lg h-screen lg:border-r border-r-slate-200 dark:border-r-slate-100/25 flex-none">
             <div className="flex items-center justify-between px-4 py-8">
                 <h2 className="text-3xl dark:text-white">Messages</h2>
                 <div className="flex gap-4">
@@ -116,6 +116,7 @@ function MessagesList({ ws, selectedRoomId, onSelectRoom }: Props) {
                 </div>
             </div>
             <div className="bg-slate-200 dark:bg-slate-100/25 w-full h-px mb-6"></div>
+            <div className="overflow-scroll no-scrollbar h-[calc(100vh-108px)]">
 
             {loaded ? (
                 (rooms && rooms.length > 0 ? (
@@ -142,6 +143,7 @@ function MessagesList({ ws, selectedRoomId, onSelectRoom }: Props) {
                             </div>
                         </div>))
             ) : (<p>Loading...</p>)}
+            </div>
         </div>
     )
 }
