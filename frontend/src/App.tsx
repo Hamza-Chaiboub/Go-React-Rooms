@@ -7,6 +7,7 @@ import Login from "./pages/Login"
 import Logout from "./pages/Logout"
 import Register from "./pages/Register"
 import GuestRoutes from "./utils/GuestRoutes"
+import { Find } from "./pages/Find"
 
 function Layout() {
     return (
@@ -34,6 +35,7 @@ function App() {
                     <Route path="/login" element={<Login/>} />
                     <Route path="/register" element={<Register/>} />
                 </Route>
+                <Route path="/find" element={<Find/>} />
             </Routes>
         </BrowserRouter>
     </>
