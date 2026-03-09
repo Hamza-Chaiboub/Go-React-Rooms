@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import Avatar from '../assets/avatar.avif'
-import { LuLayoutDashboard, LuFileStack, LuPhoneCall, LuMessageCircleMore, LuUsers, LuSettings } from "react-icons/lu";
+import { LuLayoutDashboard, LuFileStack, LuPhoneCall, LuMessageCircleMore, LuUsers, LuSettings, LuUserRoundSearch } from "react-icons/lu";
 import { IoAnalyticsOutline } from "react-icons/io5";
 import SideLink from './SideLink';
 import { Link } from 'react-router-dom';
@@ -42,7 +42,7 @@ function Sidebar() {
                 "fixed left-0 top-0 z-40 h-screen",
                 "border-r border-slate-200 dark:border-slate-200/25 dark:bg-slate-950 bg-white",
                 "transition-all duration-200 ease-out",
-                "md:w-64",
+                "lg:w-64",
                 "w-16",
                 expanded ? expandedW : collapsedW,
             ].join(" ")}
@@ -69,6 +69,7 @@ function Sidebar() {
 
                 <nav className="mt-8 flex-1 space-y-1">
                     <SideLink expanded={expanded} name="Dashboard" link="/dashboard" Icon={LuLayoutDashboard} />
+                    <SideLink expanded={expanded} name="Find Roommates" link="/find" Icon={LuUserRoundSearch} />
                     <SideLink expanded={expanded} name="Analytics" link="/analytics" Icon={IoAnalyticsOutline} />
                     <SideLink expanded={expanded} name="Files" link="/files" Icon={LuFileStack} />
                     <SideLink expanded={expanded} name="Calls" link="/calls" Icon={LuPhoneCall} />

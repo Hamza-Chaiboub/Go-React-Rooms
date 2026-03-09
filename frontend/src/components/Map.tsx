@@ -2,7 +2,6 @@ import { useCallback, useEffect, useState } from "react";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet"
 
 type MapType = {
-    position: number[];
     className?: string;
 }
 
@@ -66,6 +65,7 @@ export const Map = ({ className }: MapType) => {
         <>
             <MapContainer className={className} center={location} zoom={13} scrollWheelZoom={false}>
                 <TileLayer
+                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                     url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 />
                 <Marker position={location}>
