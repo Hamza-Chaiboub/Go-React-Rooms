@@ -9,7 +9,7 @@ import { ListingFilters } from '../components/ListingFilters';
 import { useState } from 'react';
 import { AddListingDrawer } from '../components/AddListingDrawer';
 
-export const Find = () => {
+export const Find = ({ className }: {className?: string}) => {
     const breadcrumbs = [
         <Link href="/" key="1" className='text-inherit' >Home</Link>,
         <Typography className='text-slate-950 dark:text-slate-300'>Find</Typography>
@@ -26,7 +26,7 @@ export const Find = () => {
     const handleClickCloseDrawer = () => setOpenDrawer(false)
     return (
         <>
-        <div className='flex flex-col lg:flex-row ml-16 lg:ml-64 px-2 md:px-2'>
+        <div className={`flex flex-col lg:flex-row px-2 md:px-2 ${className}`}>
             <Map className='w-full lg:w-2xl lg:fixed rounded-2xl h-96 mt-16 lg:bg-slate-800! bg-none z-10' />
             <section className='w-full lg:w-2/3 p-4 flex flex-col gap-8 lg:mt-0 lg:ml-168'>
                 <header className='flex flex-col gap-4 text-slate-950 dark:text-slate-200'>

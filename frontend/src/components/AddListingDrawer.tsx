@@ -2,7 +2,7 @@ import { Button, Drawer, IconButton, Step, StepLabel, Stepper, Typography } from
 import CloseIcon from '@mui/icons-material/Close';
 import { useState } from "react";
 import { HomeDetailsStep } from "./stepperComponents/HomeDetailsStep";
-import { RulesAvailabilityStep } from "./stepperComponents/RulesAvailabilityStep";
+import { LocationAndAvailabilityStep } from "./stepperComponents/LocationAndAvailabilityStep";
 import { PricePublishStep } from "./stepperComponents/PricePublishStep";
 
 export type ListingFormData = {
@@ -36,8 +36,8 @@ export const AddListingDrawer = ({isOpen, closeDrawer}: {isOpen: boolean, closeD
             component: HomeDetailsStep
         },
         {
-            label: 'Rules & Availability',
-            component: RulesAvailabilityStep
+            label: 'Location & Availability',
+            component: LocationAndAvailabilityStep
         },
         {
             label: 'Location & Price',
@@ -62,7 +62,7 @@ export const AddListingDrawer = ({isOpen, closeDrawer}: {isOpen: boolean, closeD
             onClose={closeDrawer}
             sx={{
                 '& .MuiDrawer-paper': {
-                    width: { xs: '100%', sm: '70%', lg: '50%' },
+                    width: { xs: '100%', sm: '70%', lg: '40%' },
                     paddingX: 4,
                     paddingY: 2
                 }

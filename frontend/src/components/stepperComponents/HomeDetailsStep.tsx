@@ -78,13 +78,13 @@ export const HomeDetailsStep = ({ formData, setFormData }: HomeDetailsStepProps)
     }
 
     return (
-        <div className="flex flex-col gap-6">
-            <FormControl sx={{ m: 1, minWidth: 120 }} size="small" className='flex-1 dark:bg-slate-800 rounded-lg'>
+        <div className="flex flex-col gap-4 my-4">
+            <FormControl sx={{ m: 1, minWidth: 120 }} size="small" className='flex-1 flex-col! gap-2 dark:bg-slate-800 rounded-lg'>
                 <span>Title</span>
-                <InputBase value={formData.title} onChange={handleTitleChange} className='text-slate-950!  dark:bg-slate-700 border border-slate-500 dark:border-slate-600 lg:w-1/2 w-full p-1 dark:text-slate-200! rounded-lg' />
+                <InputBase value={formData.title} onChange={handleTitleChange} className='text-slate-950!  dark:bg-slate-700 border border-slate-500/25 dark:border-slate-600 lg:w-1/2 w-full p-1 dark:text-slate-200! rounded-lg' />
             </FormControl>
-            <FormControl sx={{ m: 1 }} size="small" className='flex flex-1 flex-row! gap-6 items-center dark:bg-slate-800 rounded-lg'>
-                <span>Bedrooms:</span>
+            <FormControl sx={{ m: 1 }} size="small" className='flex flex-1 flex-col! gap-2 items-start dark:bg-slate-800 rounded-lg'>
+                <span className="min-w-28">Bedrooms:</span>
                 <ToggleButtonGroup
                     exclusive
                     value={formData.bedrooms}
@@ -134,8 +134,8 @@ export const HomeDetailsStep = ({ formData, setFormData }: HomeDetailsStepProps)
                     }
                 </ToggleButtonGroup>
             </FormControl>
-            <FormControl sx={{ m: 1 }} size="small" className='flex flex-1 flex-row! gap-6 items-center dark:bg-slate-800 rounded-lg'>
-                <span>Bathrooms:</span>
+            <FormControl sx={{ m: 1 }} size="small" className='flex flex-1 flex-col! gap-2 items-start dark:bg-slate-800 rounded-lg'>
+                <span className="min-w-28">Bathrooms:</span>
                 <ToggleButtonGroup
                     exclusive
                     value={formData.bathrooms}
@@ -187,32 +187,34 @@ export const HomeDetailsStep = ({ formData, setFormData }: HomeDetailsStepProps)
                     }
                 </ToggleButtonGroup>
             </FormControl>
-            <FormControl sx={{ m: 1 }} className='flex flex-1 flex-row! gap-6 items-center dark:bg-slate-800 rounded-lg'>
-                <span>Area:</span>
-                <NumberField
-                    size="small"
-                    min={0}
-                    value={formData.area}
-                    onValueChange={(value) => handleArea(value)}
-                    outlineClassName="
-                        rounded-3xl!
-                        bg-white dark:bg-slate-600
-                        [&_.MuiOutlinedInput-notchedOutline]:border-slate-300
-                        dark:[&_.MuiOutlinedInput-notchedOutline]:border-slate-600
-                        [&.Mui-focused_.MuiOutlinedInput-notchedOutline]:border-blue-500
-                        dark:[&.Mui-focused_.MuiOutlinedInput-notchedOutline]:border-blue-400
-                    "
-                    inputClassName="text-slate-900 dark:text-slate-100! px-3"
-                    adornmentClassName="border-l border-slate-300 dark:border-slate-600"
-                    buttonClassName="text-slate-500 hover:bg-slate-100 dark:text-slate-400! dark:hover:bg-slate-800"
-                />
-                <Select size="small" value={formData.areaUnit} onChange={handleAreaUnit} className="dark:bg-slate-600 dark:text-slate-200! rounded-3xl!">
-                    <MenuItem value="sqft">sqft (ft<sup>2</sup>)</MenuItem>
-                    <MenuItem value="sqm">sqm (m<sup>2</sup>)</MenuItem>
-                </Select>
+            <FormControl sx={{ m: 1 }} className='flex flex-1 flex-col! gap-2 items-start dark:bg-slate-800 rounded-lg'>
+                <span className="min-w-28">Area:</span>
+                <div className="flex gap-4">
+                    <NumberField
+                        size="small"
+                        min={0}
+                        value={formData.area}
+                        onValueChange={(value) => handleArea(value)}
+                        outlineClassName="
+                            rounded-3xl!
+                            bg-white dark:bg-slate-600
+                            [&_.MuiOutlinedInput-notchedOutline]:border-slate-300
+                            dark:[&_.MuiOutlinedInput-notchedOutline]:border-slate-600
+                            [&.Mui-focused_.MuiOutlinedInput-notchedOutline]:border-blue-500
+                            dark:[&.Mui-focused_.MuiOutlinedInput-notchedOutline]:border-blue-400
+                        "
+                        inputClassName="text-slate-900 dark:text-slate-100! px-3"
+                        adornmentClassName="border-l border-slate-300 dark:border-slate-600"
+                        buttonClassName="text-slate-500 hover:bg-slate-100 dark:text-slate-400! dark:hover:bg-slate-800"
+                    />
+                    <Select size="small" value={formData.areaUnit} onChange={handleAreaUnit} className="dark:bg-slate-600 dark:text-slate-200! rounded-3xl!">
+                        <MenuItem value="sqft">sqft (ft<sup>2</sup>)</MenuItem>
+                        <MenuItem value="sqm">sqm (m<sup>2</sup>)</MenuItem>
+                    </Select>
+                </div>
             </FormControl>
-            <FormControl sx={{ m: 1 }} size="small" className='flex flex-1 flex-row! gap-6 items-center dark:bg-slate-800 rounded-lg'>
-                <span>Furnished?</span>
+            <FormControl sx={{ m: 1 }} size="small" className='flex flex-1 flex-col! gap-2 items-start dark:bg-slate-800 rounded-lg'>
+                <span className="min-w-28">Furnished?</span>
                 <ToggleButtonGroup
                     exclusive
                     value={formData.isFurnished}
@@ -234,8 +236,8 @@ export const HomeDetailsStep = ({ formData, setFormData }: HomeDetailsStepProps)
                     <ToggleButton className="border! rounded-2xl! px-6! py-1! bg-slate-200/80! dark:bg-slate-600! dark:text-slate-300! capitalize!" value={false}>No</ToggleButton>
                 </ToggleButtonGroup>
             </FormControl>
-            <FormControl sx={{ m: 1 }} size="small" className='flex flex-1 flex-row! gap-6 items-center dark:bg-slate-800 rounded-lg'>
-                <span>Parking?</span>
+            <FormControl sx={{ m: 1 }} size="small" className='flex flex-1 flex-col! gap-2 items-start dark:bg-slate-800 rounded-lg'>
+                <span className="min-w-28">Parking?</span>
                 <ToggleButtonGroup
                     exclusive
                     value={formData.parking}
@@ -257,11 +259,6 @@ export const HomeDetailsStep = ({ formData, setFormData }: HomeDetailsStepProps)
                     <ToggleButton className="border! rounded-2xl! px-6! py-1! bg-slate-200/80! dark:bg-slate-600! dark:text-slate-300! capitalize!" value={false}>No</ToggleButton>
                 </ToggleButtonGroup>
             </FormControl>
-            <button
-                onClick={() => console.log(
-                    "bedroom: " + formData.bedrooms + " bathrooms: " + formData.bathrooms + " area: " + formData.area + " area unit: " + formData.areaUnit + " furnished: " + formData.isFurnished + " parking: " + formData.parking
-                )}
-            >Save</button>
         </div>
     )
 }
