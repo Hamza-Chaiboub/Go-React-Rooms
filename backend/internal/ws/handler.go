@@ -66,12 +66,20 @@ func (handler *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	client := &Client{
-		UserID: userID,
-		Send:   make(chan Envelope, 16),
-		Room:   "",
+		UserID:     userID,
+		Send:       make(chan Envelope, 16),
+		ActiveRoom: "",
+		Rooms:      make(map[string]struct{}),
 	}
 
 	handler.Hub.register <- client
+
+	joinedRooms, err := handler.Rooms.ListForUser(context.Background(), userID)
+	if err == nil {
+		for _, room := range joinedRooms {
+			handler.Hub.Subscribe(client, room.ID)
+		}
+	}
 
 	//	start writer in bg
 	go writer(conn, client)
@@ -117,16 +125,22 @@ func reader(conn *websocket.Conn, handler *Handler, client *Client) {
 
 			ok, err := handler.Rooms.IsMember(context.Background(), room, client.UserID)
 			if err != nil || !ok {
-				sendErr(client, err.Error())
+				if err != nil {
+					sendErr(client, err.Error())
+				} else {
+					sendErr(client, "not a member")
+				}
 				continue
 			}
 
-			client.Room = room
+			handler.Hub.Subscribe(client, room)
+
+			client.ActiveRoom = room
 
 		case "message":
 			room := strings.TrimSpace(envelope.Room)
 			if room == "" {
-				room = client.Room
+				room = client.ActiveRoom
 			}
 			if room == "" {
 				sendErr(client, "join a room first")

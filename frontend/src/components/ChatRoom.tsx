@@ -31,7 +31,7 @@ const LIMIT_MESSAGES_LOAD = 15
 const TOP_THRESHOLD_PIXELS = 40
 const BOTTOM_THRESHOLD_PIXELS = 2000 // a workaround for now, I can't figure it out this late at night
 
-export const ChatRoom = ({ ws, roomId }: {ws: ReturnType<typeof useWebSocket>; roomId: string | null}) => {
+export const ChatRoom = ({ ws, roomId, roomName }: {ws: ReturnType<typeof useWebSocket>; roomId: string | null; roomName: string | null}) => {
   const apiUrl = import.meta.env.VITE_API_URL as string
   const [history, setHistory] = useState<ServerMsg[]>([])
   const [loading, setLoading] = useState(false)
@@ -104,6 +104,7 @@ export const ChatRoom = ({ ws, roomId }: {ws: ReturnType<typeof useWebSocket>; r
   }, [apiUrl, roomId])
 
   useEffect(() => {
+    if (!history) return;
     if (!loading && history.length > 0 && !initialScrollDone.current && scrollerRef.current) {
       scrollToBottom('auto')
       initialScrollDone.current = true
@@ -185,7 +186,7 @@ export const ChatRoom = ({ ws, roomId }: {ws: ReturnType<typeof useWebSocket>; r
         <div className="text-slate-500">Loading...</div>
       ) : (
         <>
-          <ChatRoomHeader />
+          <ChatRoomHeader roomName={roomName} />
           <div className="bg-slate-200 dark:bg-slate-100/25 w-full h-px"></div>
           <div ref={scrollerRef} className="flex-1 min-h-0 overflow-y-auto p-5 bg-white dark:bg-slate-900">
             {merged.length > 0 ? (

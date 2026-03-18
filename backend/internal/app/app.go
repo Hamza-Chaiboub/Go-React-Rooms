@@ -12,7 +12,9 @@ import (
 	"go-react-rooms/internal/functions"
 	"go-react-rooms/internal/health"
 	"go-react-rooms/internal/httpserver"
+	"go-react-rooms/internal/listing"
 	"go-react-rooms/internal/middleware"
+	"go-react-rooms/internal/repositories/listings"
 	"go-react-rooms/internal/repositories/messages"
 	"go-react-rooms/internal/repositories/rooms"
 	"go-react-rooms/internal/repositories/users"
@@ -101,9 +103,15 @@ func New(cfg config.Config) (*App, error) {
 	roomRepo := rooms.Repo{
 		DB: pg.DB,
 	}
+	listingRepo := listings.Repo{
+		DB: pg.DB,
+	}
 	roomHandler := chat.Handlers{
 		Rooms:    roomRepo,
 		Messages: messagesRepo,
+	}
+	listingHandler := listing.Handler{
+		Listings: listingRepo,
 	}
 	roomsHandler := middleware.RequireAuth(sessionStore, http.HandlerFunc(roomHandler.HandleRooms))
 	mux.Handle("/rooms", roomsHandler)
@@ -120,6 +128,12 @@ func New(cfg config.Config) (*App, error) {
 	listMessagesHandler = http.HandlerFunc(roomHandler.ListMessages)
 	listMessagesHandler = middleware.RequireAuth(sessionStore, listMessagesHandler)
 	mux.Handle("/rooms/messages", listMessagesHandler)
+
+	// create listing
+	var createListingHandler http.Handler
+	createListingHandler = http.HandlerFunc(listingHandler.CreateListing)
+	createListingHandler = middleware.RequireAuth(sessionStore, createListingHandler)
+	mux.Handle("/listings/create", createListingHandler)
 
 	// websockets
 	hub := ws.NewHub()
