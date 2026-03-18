@@ -7,8 +7,8 @@ export const ListingFilters = ({ onViewChange, currentView }: { onViewChange: (s
     const activeIconClass = "border border-slate-400/40 text-slate-100 bg-slate-600 dark:bg-slate-800"
     const inactiveIconClass = "text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700"
     return (
-        <div className='w-full flex gap-2 justify-between items-center'>
-            <div className='flex flex-1 justify-start'>
+        <div className='w-full flex gap-2 justify-between items-center flex-wrap'>
+            <div className='flex flex-1 justify-start flex-wrap'>
                 <FormControl sx={{ m: 1, minWidth: 120 }} size="small" className='flex-1 dark:bg-slate-800 rounded-lg'>
                     <InputLabel className='rounded-md
                     text-slate-950! dark:text-slate-200!
