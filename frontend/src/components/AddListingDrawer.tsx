@@ -2,8 +2,9 @@ import { Button, Drawer, IconButton, Step, StepLabel, Stepper, Typography } from
 import CloseIcon from '@mui/icons-material/Close';
 import { useState } from "react";
 import { HomeDetailsStep } from "./stepperComponents/HomeDetailsStep";
-import { LocationAndAvailabilityStep } from "./stepperComponents/LocationAndAvailabilityStep";
+import { LocationAndAvailabilityStep, type CountryOption, type UnitOptions } from "./stepperComponents/LocationAndAvailabilityStep";
 import { PricePublishStep } from "./stepperComponents/PricePublishStep";
+import type { PropsValue } from "react-select";
 
 export type ListingFormData = {
     title: string;
@@ -15,6 +16,17 @@ export type ListingFormData = {
     parking: boolean | null;
     isCustomBedroom: boolean;
     isCustomBathroom: boolean;
+    preciseLocation: boolean;
+    country: PropsValue<CountryOption> | null;
+    postalCode: string;
+    province: string;
+    city: string;
+    street: string;
+    blockNumber: string;
+    startDate: Date | null;
+    endDate: Date | null;
+    duration: number | null;
+    durationUnit: PropsValue<UnitOptions>;
 }
 
 export const AddListingDrawer = ({isOpen, closeDrawer}: {isOpen: boolean, closeDrawer: () => void}) => {
@@ -29,6 +41,17 @@ export const AddListingDrawer = ({isOpen, closeDrawer}: {isOpen: boolean, closeD
         parking: null,
         isCustomBedroom: false,
         isCustomBathroom: false,
+        preciseLocation: false,
+        country: null,
+        postalCode: "",
+        province: "",
+        city: "",
+        street: "",
+        blockNumber: "",
+        startDate: null,
+        endDate: null,
+        duration: 0,
+        durationUnit: null
     })
     const steps = [
         {
