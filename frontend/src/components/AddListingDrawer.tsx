@@ -3,7 +3,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import { useState } from "react";
 import { HomeDetailsStep } from "./stepperComponents/HomeDetailsStep";
 import { LocationAndAvailabilityStep, type CountryOption, type UnitOptions } from "./stepperComponents/LocationAndAvailabilityStep";
-import { PricePublishStep } from "./stepperComponents/PricePublishStep";
+import { PricingAndRulesStep, type CurrencyOption, type StatusOption } from "./stepperComponents/PricingAndRulesStep";
 import type { PropsValue } from "react-select";
 
 export type ListingFormData = {
@@ -27,6 +27,11 @@ export type ListingFormData = {
     endDate: Date | null;
     duration: number | null;
     durationUnit: PropsValue<UnitOptions>;
+    price: number | null;
+    currency: PropsValue<CurrencyOption> | null;
+    petsAllowed: boolean;
+    smokingAllowed: boolean;
+    status: PropsValue<StatusOption> | null;
 }
 
 export const AddListingDrawer = ({isOpen, closeDrawer}: {isOpen: boolean, closeDrawer: () => void}) => {
@@ -51,7 +56,12 @@ export const AddListingDrawer = ({isOpen, closeDrawer}: {isOpen: boolean, closeD
         startDate: null,
         endDate: null,
         duration: 0,
-        durationUnit: null
+        durationUnit: null,
+        price: 0,
+        currency: null,
+        petsAllowed: false,
+        smokingAllowed: false,
+        status: null
     })
     const steps = [
         {
@@ -63,14 +73,17 @@ export const AddListingDrawer = ({isOpen, closeDrawer}: {isOpen: boolean, closeD
             component: LocationAndAvailabilityStep
         },
         {
-            label: 'Location & Price',
-            component: PricePublishStep
+            label: 'Pricing & Rules',
+            component: PricingAndRulesStep
         }
     ]
     const ActiveStepComponent = steps[step].component
 
     const handleNextStepClick = () => {
-        if (step === steps.length) return;
+        if (step === steps.length - 1) {
+            console.log(formData)
+            return
+        };
         setStep(prev => prev + 1)
     }
 
