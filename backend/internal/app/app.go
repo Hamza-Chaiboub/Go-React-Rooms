@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"errors"
 	"go-react-rooms/internal/auth"
 	"go-react-rooms/internal/auth/routes"
@@ -19,6 +20,7 @@ import (
 	"go-react-rooms/internal/repositories/rooms"
 	"go-react-rooms/internal/repositories/users"
 	"go-react-rooms/internal/security"
+	"go-react-rooms/internal/storage"
 	"go-react-rooms/internal/ws"
 	"net/http"
 	"time"
@@ -134,6 +136,25 @@ func New(cfg config.Config) (*App, error) {
 	createListingHandler = http.HandlerFunc(listingHandler.CreateListing)
 	createListingHandler = middleware.RequireAuth(sessionStore, createListingHandler)
 	mux.Handle("/listings/create", createListingHandler)
+
+	// upload images to S3
+	ctx := context.Background()
+	s3Storage, err := storage.NewS3Storage(ctx)
+	if err != nil {
+		return nil, err
+	}
+	uploadHandler := storage.NewUploadHandler(s3Storage)
+	var uploadS3Handler http.Handler
+	uploadS3Handler = http.HandlerFunc(uploadHandler.CreateImageUploadURL)
+	uploadS3Handler = middleware.RequireAuth(sessionStore, uploadS3Handler)
+	uploadS3Handler = security.CSRFMiddleware(uploadS3Handler)
+	mux.Handle("/uploads/image", uploadS3Handler)
+
+	// get image/view URL
+	var getImageHandler http.Handler
+	getImageHandler = http.HandlerFunc(uploadHandler.GetImageURL)
+	getImageHandler = security.CSRFMiddleware(getImageHandler)
+	mux.Handle("/images/url", getImageHandler)
 
 	// websockets
 	hub := ws.NewHub()
