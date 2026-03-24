@@ -37,7 +37,7 @@ function FindPageWrapper() {
         return (
             <>
                 <Sidebar/>
-                <Find/>
+                <Find className="ml-16 lg:ml-64"/>
             </>
         )
     }

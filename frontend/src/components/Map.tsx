@@ -50,15 +50,12 @@ export const Map = ({ className }: MapType) => {
             },
             { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
         )
-        console.log(location)
     }, [])
 
     if (!location) {
         if (locationError) {
-            console.log('locationError')
             return <div>Error: {locationError}</div>
         }
-        console.log("!location")
         return <div>Getting the location data...</div>
     }
     return (

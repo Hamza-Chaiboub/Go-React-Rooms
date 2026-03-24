@@ -20,9 +20,9 @@ export const ListingCard = ({price, address, beds, date, area}: ListinCardType) 
         setIsFavourite(prev => !prev)
     }
     return (
-        <Card className='flex grow shadow-none! border border-slate-200 dark:border-slate-600/75 rounded-lg! bg-slate-100! dark:bg-slate-800! dark:text-white!'>
+        <Card className='flex sm:flex-row flex-col grow shadow-none! border border-slate-200 dark:border-slate-600/75 rounded-lg! bg-slate-100! dark:bg-slate-800! dark:text-white!'>
             <CardMedia
-                className='h-36 w-46! cursor-pointer'
+                className='h-36 w-full! sm:w-46! cursor-pointer'
                 component="img"
                 image={Flat}
                 onClick={() => console.log("clicked")}
@@ -43,7 +43,7 @@ export const ListingCard = ({price, address, beds, date, area}: ListinCardType) 
                     </div>
                 </div>
                 <hr className='text-slate-300 dark:text-slate-600/50' />
-                <div className='flex items-center gap-3 text-slate-600 text-xs!'>
+                <div className='flex sm:justify-start justify-between items-center gap-3 text-slate-600 text-xs!'>
                     <div className='flex items-center gap-1 text-slate-950 dark:text-slate-200'><KingBedOutlinedIcon/> <div className='text-slate-600 dark:text-slate-400'>{beds}</div></div>
                     <div className='flex items-center gap-1 text-slate-950 dark:text-slate-200'><CalendarMonthOutlinedIcon/> <div className='text-slate-600 dark:text-slate-400'>{date}</div></div>
                     <div className='flex items-center gap-1 text-slate-950 dark:text-slate-200'><SelectAllOutlinedIcon/> <div className='text-slate-600 dark:text-slate-400'>{area} m<sup>2</sup></div></div>

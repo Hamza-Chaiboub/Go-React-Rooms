@@ -36,6 +36,10 @@ services:
 #      useful when testing RDS
 #      DATABASE_URL: "postgres://${POSTGRES_USER_RDS}:${POSTGRES_PASSWORD_RDS}@${RDS_ENDPOINT}:${POSTGRES_PORT_RDS}/${POSTGRES_DB_RDS}?sslmode=require"
       REDIS_URL: "redis://redis:6379"
+      AWS_REGION: "${AWS_REGION}"
+      AWS_S3_BUCKET: "${AWS_S3_BUCKET}"
+      AWS_ACCESS_KEY_ID: "${AWS_ACCESS_KEY_ID}"
+      AWS_SECRET_ACCESS_KEY: "${AWS_SECRET_ACCESS_KEY}"
     ports:
       - "8080:${BACKEND_PORT}"
     volumes:
