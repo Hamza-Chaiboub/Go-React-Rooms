@@ -31,7 +31,7 @@ const VisuallyHiddenInput = styled('input')({
 
 export const PricingAndRulesStep = ({ formData, setFormData }: PricingAndRulesStepProps) => {
     const currencyOptions: CurrencyOption[] = [
-        { value: "CA$", label: "Canadian Dollar" },
+        { value: "CAD", label: "Canadian Dollar" },
         { value: "$", label: "American Dollar" }
     ]
     const statusOptions: StatusOption[] = [
@@ -162,7 +162,7 @@ export const PricingAndRulesStep = ({ formData, setFormData }: PricingAndRulesSt
             <section className="flex gap-4 my-4">
                 {/* thumbnail */}
                 <FormControl className="w-1/2">
-                    <span className="mb-2">Thumbnail</span>
+                    <span className="mb-2">Photo</span>
                     <Button
                         component="label"
                         role={undefined}
