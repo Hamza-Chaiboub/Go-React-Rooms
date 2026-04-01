@@ -33,7 +33,6 @@ type Listing struct {
 	SmokingAllowed   bool       `json:"smokingAllowed"`
 	ParkingAvailable bool       `json:"parkingAvailable"`
 	Status           string     `json:"status"`
-	ThumbnailImageId *string    `json:"thumbnailImageId,omitempty"`
 	CreatedAt        time.Time  `json:"createdAt"`
 	UpdatedAt        time.Time  `json:"updatedAt"`
 }
@@ -68,7 +67,6 @@ type InsertParams struct {
 	SmokingAllowed   bool
 	ParkingAvailable bool
 	Status           string
-	ThumbnailImageId *string
 }
 
 func (repo Repo) Insert(ctx context.Context, params InsertParams) (Listing, error) {
@@ -99,12 +97,11 @@ func (repo Repo) Insert(ctx context.Context, params InsertParams) (Listing, erro
 		    pets_allowed, 
 		    smoking_allowed,
 		    parking_available, 
-		    status, 
-		    thumbnail_image_id
+		    status
 		)
 		VALUES (
 		    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20,
-		    $21, $22, $23, $24, $25, $26
+		    $21, $22, $23, $24, $25
 		)
 		RETURNING
 			id::text, 
@@ -132,8 +129,7 @@ func (repo Repo) Insert(ctx context.Context, params InsertParams) (Listing, erro
 		    pets_allowed, 
 		    smoking_allowed,
 		    parking_available, 
-		    status, 
-		    thumbnail_image_id::text, 
+		    status,
 		    created_at, 
 		    updated_at
 		`,
@@ -162,7 +158,6 @@ func (repo Repo) Insert(ctx context.Context, params InsertParams) (Listing, erro
 		params.SmokingAllowed,
 		params.ParkingAvailable,
 		params.Status,
-		params.ThumbnailImageId,
 	).Scan(
 		&listing.ID,
 		&listing.UserID,
@@ -190,10 +185,23 @@ func (repo Repo) Insert(ctx context.Context, params InsertParams) (Listing, erro
 		&listing.SmokingAllowed,
 		&listing.ParkingAvailable,
 		&listing.Status,
-		&listing.ThumbnailImageId,
 		&listing.CreatedAt,
 		&listing.UpdatedAt,
 	)
 
 	return listing, err
+}
+
+func (repo Repo) UserOwnsListing(ctx context.Context, UserID string, listingID string) (bool, error) {
+	var exists bool
+
+	err := repo.DB.QueryRowContext(ctx, `
+		SELECT EXISTS (
+		    SELECT 1
+		    FROM listings
+		    WHERE id::text = $1
+		    	AND user_id::text = $2
+		)`, listingID, UserID).Scan(&exists)
+
+	return exists, err
 }
