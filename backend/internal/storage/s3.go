@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"os"
@@ -122,4 +123,34 @@ func (storage *S3Storage) CreatePresignedGetURL(ctx context.Context, key string)
 	}
 
 	return req.URL, nil
+}
+
+func (storage *S3Storage) UploadListingImage(ctx context.Context, listingID string, contentType string, data []byte) (string, error) {
+	key, err := BuildListingImageKey(listingID, contentType)
+	if err != nil {
+		return "", err
+	}
+
+	_, err = storage.Client.PutObject(ctx, &s3.PutObjectInput{
+		Bucket:      aws.String(storage.Bucket),
+		Key:         aws.String(key),
+		Body:        bytes.NewReader(data),
+		ContentType: aws.String(contentType),
+	})
+	if err != nil {
+		return "", fmt.Errorf("put object: %w", err)
+	}
+
+	return key, nil
+}
+
+func (storage *S3Storage) DeleteObject(ctx context.Context, key string) error {
+	_, err := storage.Client.DeleteObject(ctx, &s3.DeleteObjectInput{
+		Bucket: aws.String(storage.Bucket),
+		Key:    aws.String(key),
+	})
+	if err != nil {
+		return fmt.Errorf("delete object: %w", err)
+	}
+	return nil
 }

@@ -15,6 +15,7 @@ import (
 	"go-react-rooms/internal/httpserver"
 	"go-react-rooms/internal/listing"
 	"go-react-rooms/internal/middleware"
+	"go-react-rooms/internal/repositories/listing_images"
 	"go-react-rooms/internal/repositories/listings"
 	"go-react-rooms/internal/repositories/messages"
 	"go-react-rooms/internal/repositories/rooms"
@@ -115,6 +116,11 @@ func New(cfg config.Config) (*App, error) {
 	listingHandler := listing.Handler{
 		Listings: listingRepo,
 	}
+	listingImagesRepo := listing_images.Repo{
+		DB: pg.DB,
+	}
+	ctx := context.Background()
+	s3Storage, err := storage.NewS3Storage(ctx)
 	roomsHandler := middleware.RequireAuth(sessionStore, http.HandlerFunc(roomHandler.HandleRooms))
 	mux.Handle("/rooms", roomsHandler)
 
@@ -138,19 +144,27 @@ func New(cfg config.Config) (*App, error) {
 	mux.Handle("/listings/create", createListingHandler)
 
 	// upload images to S3
-	ctx := context.Background()
-	s3Storage, err := storage.NewS3Storage(ctx)
-	if err != nil {
-		return nil, err
-	}
-	uploadHandler := storage.NewUploadHandler(s3Storage)
-	var uploadS3Handler http.Handler
-	uploadS3Handler = http.HandlerFunc(uploadHandler.CreateImageUploadURL)
-	uploadS3Handler = middleware.RequireAuth(sessionStore, uploadS3Handler)
-	uploadS3Handler = security.CSRFMiddleware(uploadS3Handler)
-	mux.Handle("/uploads/image", uploadS3Handler)
+	//ctx := context.Background()
+	//s3Storage, err := storage.NewS3Storage(ctx)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//uploadHandler := storage.NewUploadHandler(s3Storage)
+	//var uploadS3Handler http.Handler
+	//uploadS3Handler = http.HandlerFunc(uploadHandler.CreateImageUploadURL)
+	//uploadS3Handler = middleware.RequireAuth(sessionStore, uploadS3Handler)
+	//uploadS3Handler = security.CSRFMiddleware(uploadS3Handler)
+	//mux.Handle("/uploads/image", uploadS3Handler)
+	imageUploadHandler := listing.NewImageUploadhandler(listingRepo, listingImagesRepo, s3Storage)
+	var uploadListingImageHandler http.Handler
+	uploadListingImageHandler = http.HandlerFunc(imageUploadHandler.UploadListingImage)
+	uploadListingImageHandler = middleware.RequireAuth(sessionStore, uploadListingImageHandler)
+	uploadListingImageHandler = security.CSRFMiddleware(uploadListingImageHandler)
+	uploadListingImageHandler = security.BodyLimit(12<<20, uploadListingImageHandler)
+	mux.Handle("/listings/images/upload", uploadListingImageHandler)
 
 	// get image/view URL
+	uploadHandler := storage.NewUploadHandler(s3Storage)
 	var getImageHandler http.Handler
 	getImageHandler = http.HandlerFunc(uploadHandler.GetImageURL)
 	getImageHandler = security.CSRFMiddleware(getImageHandler)
