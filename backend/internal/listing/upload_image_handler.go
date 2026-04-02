@@ -60,22 +60,9 @@ func (handler *ImageUploadHandler) UploadListingImage(w http.ResponseWriter, r *
 		return
 	}
 
-	file, fileHeader, err := r.FormFile("file")
-	if err != nil {
-		functions.WriteError(w, http.StatusBadRequest, "file is required")
-		return
-	}
-	defer file.Close()
-
-	contentType := fileHeader.Header.Get("Content-Type")
-	if !storage.IsAllowedImageType(contentType) {
-		functions.WriteError(w, http.StatusBadRequest, "unsupported image content type")
-		return
-	}
-
-	data, err := io.ReadAll(file)
-	if err != nil {
-		functions.WriteError(w, http.StatusInternalServerError, "failed to read uploaded file")
+	files := r.MultipartForm.File["files"]
+	if len(files) == 0 {
+		functions.WriteError(w, http.StatusBadRequest, "at least one file is required")
 		return
 	}
 
@@ -85,44 +72,94 @@ func (handler *ImageUploadHandler) UploadListingImage(w http.ResponseWriter, r *
 		altText = &altTextValue
 	}
 
-	sortOrder := 0
-	if raw := r.FormValue("sortOrder"); raw != "" {
+	thumbnailIndex := 0
+	if raw := r.FormValue("thumbnailIndex"); raw != "" {
 		parsed, err := strconv.Atoi(raw)
 		if err != nil {
-			functions.WriteError(w, http.StatusBadRequest, "sortOrder must be an integer")
+			functions.WriteError(w, http.StatusBadRequest, "thumbnailIndex must be an integer")
 			return
 		}
-		sortOrder = parsed
+		thumbnailIndex = parsed
 	}
 
-	isThumbnail := false
-	if raw := r.FormValue("isThumbnail"); raw != "" {
-		parsed, err := strconv.ParseBool(raw)
+	if thumbnailIndex < 0 || thumbnailIndex >= len(files) {
+		functions.WriteError(w, http.StatusBadRequest, "thumbnailIndex is out of range")
+		return
+	}
+
+	createdImages := make([]listing_images.ListingImage, 0, len(files))
+	uploadedKeys := make([]string, 0, len(files))
+
+	cleanupUploaded := func() {
+		for _, key := range uploadedKeys {
+			_ = handler.S3.DeleteObject(r.Context(), key)
+		}
+	}
+
+	for i, fileHeader := range files {
+		file, err := fileHeader.Open()
 		if err != nil {
-			functions.WriteError(w, http.StatusBadRequest, "isThumbnail must be a boolean")
+			cleanupUploaded()
+			functions.WriteError(w, http.StatusInternalServerError, "failed to open uploaded file")
 			return
 		}
-		isThumbnail = parsed
+
+		buffer := make([]byte, 512)
+		n, err := file.Read(buffer)
+		if err != nil && err != io.EOF {
+			_ = file.Close()
+			cleanupUploaded()
+			functions.WriteError(w, http.StatusInternalServerError, "failed to read uploaded file")
+			return
+		}
+
+		contentType := http.DetectContentType(buffer[:n])
+		if !storage.IsAllowedImageType(contentType) {
+			_ = file.Close()
+			cleanupUploaded()
+			functions.WriteError(w, http.StatusBadRequest, "unsupported image content type")
+			return
+		}
+
+		if _, err := file.Seek(0, 0); err != nil {
+			_ = file.Close()
+			cleanupUploaded()
+			functions.WriteError(w, http.StatusInternalServerError, "failed to reset uploaded file")
+			return
+		}
+
+		data, err := io.ReadAll(file)
+		_ = file.Close()
+		if err != nil {
+			cleanupUploaded()
+			functions.WriteError(w, http.StatusInternalServerError, "failed to read uploaded file bytes")
+			return
+		}
+
+		s3Key, err := handler.S3.UploadListingImage(r.Context(), listingID, contentType, data)
+		if err != nil {
+			cleanupUploaded()
+			functions.WriteError(w, http.StatusInternalServerError, "failed to upload file to S3")
+			return
+		}
+
+		uploadedKeys = append(uploadedKeys, s3Key)
+
+		image, err := handler.ListingImages.InsertListingImage(r.Context(), listing_images.InsertListingImageParams{
+			ListingID:   listingID,
+			S3Key:       s3Key,
+			AltText:     altText,
+			SortOrder:   i,
+			IsThumbnail: i == thumbnailIndex,
+		})
+		if err != nil {
+			cleanupUploaded()
+			functions.WriteError(w, http.StatusInternalServerError, "failed to save image metadata")
+			return
+		}
+
+		createdImages = append(createdImages, image)
 	}
 
-	s3key, err := handler.S3.UploadListingImage(r.Context(), listingID, contentType, data)
-	if err != nil {
-		functions.WriteError(w, http.StatusInternalServerError, "failed to upload image to S3")
-		return
-	}
-
-	image, err := handler.ListingImages.InsertListingImage(r.Context(), listing_images.InsertListingImageParams{
-		ListingID:   listingID,
-		S3Key:       s3key,
-		AltText:     altText,
-		SortOrder:   sortOrder,
-		IsThumbnail: isThumbnail,
-	})
-	if err != nil {
-		_ = handler.S3.DeleteObject(r.Context(), s3key)
-		functions.WriteError(w, http.StatusInternalServerError, "failed to save image metadata")
-		return
-	}
-
-	functions.WriteJSON(w, http.StatusCreated, image)
+	functions.WriteJSON(w, http.StatusCreated, createdImages)
 }

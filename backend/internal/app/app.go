@@ -143,6 +143,12 @@ func New(cfg config.Config) (*App, error) {
 	createListingHandler = middleware.RequireAuth(sessionStore, createListingHandler)
 	mux.Handle("/listings/create", createListingHandler)
 
+	// get all listings
+	var listListingsHandler http.Handler
+	listListingsHandler = http.HandlerFunc(listingHandler.ListListings)
+	listListingsHandler = security.CSRFMiddleware(listListingsHandler)
+	mux.Handle("/listings", listListingsHandler)
+
 	// upload images to S3
 	//ctx := context.Background()
 	//s3Storage, err := storage.NewS3Storage(ctx)
