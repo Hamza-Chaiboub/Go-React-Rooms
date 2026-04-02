@@ -38,3 +38,15 @@ func (handler Handler) CreateListing(w http.ResponseWriter, r *http.Request) {
 
 	functions.WriteJSON(w, http.StatusCreated, listing)
 }
+
+func (handler Handler) ListListings(w http.ResponseWriter, r *http.Request) {
+	items, err := handler.Listings.GetAllListings(r.Context())
+	if err != nil {
+		functions.WriteError(w, http.StatusInternalServerError, "could not list listings")
+		return
+	}
+
+	functions.WriteJSON(w, http.StatusOK, map[string]any{
+		"listings": items,
+	})
+}
