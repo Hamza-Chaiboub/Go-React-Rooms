@@ -33,37 +33,41 @@ export type ListingFormData = {
     petsAllowed: boolean;
     smokingAllowed: boolean;
     status: PropsValue<StatusOption> | null;
+    image: File | null;
 }
 
-export const AddListingDrawer = ({isOpen, closeDrawer}: {isOpen: boolean, closeDrawer: () => void}) => {
+const initialFormData: ListingFormData = {
+    title: "",
+    bedrooms: null,
+    bathrooms: null,
+    area: null,
+    areaUnit: "sqm",
+    isFurnished: null,
+    parking: null,
+    isCustomBedroom: false,
+    isCustomBathroom: false,
+    preciseLocation: false,
+    country: null,
+    postalCode: "",
+    province: "",
+    city: "",
+    street: "",
+    blockNumber: "",
+    startDate: null,
+    endDate: null,
+    duration: 0,
+    durationUnit: null,
+    price: 0,
+    currency: null,
+    petsAllowed: false,
+    smokingAllowed: false,
+    status: null,
+    image: null
+}
+
+export const AddListingDrawer = ({ isOpen, closeDrawer }: { isOpen: boolean, closeDrawer: () => void }) => {
     const [step, setStep] = useState(0)
-    const [formData, setFormData] = useState<ListingFormData>({
-        title: "",
-        bedrooms: null,
-        bathrooms: null,
-        area: null,
-        areaUnit: "sqm",
-        isFurnished: null,
-        parking: null,
-        isCustomBedroom: false,
-        isCustomBathroom: false,
-        preciseLocation: false,
-        country: null,
-        postalCode: "",
-        province: "",
-        city: "",
-        street: "",
-        blockNumber: "",
-        startDate: null,
-        endDate: null,
-        duration: 0,
-        durationUnit: null,
-        price: 0,
-        currency: null,
-        petsAllowed: false,
-        smokingAllowed: false,
-        status: null
-    })
+    const [formData, setFormData] = useState<ListingFormData>(initialFormData)
     const steps = [
         {
             label: 'Home Details',
@@ -95,28 +99,31 @@ export const AddListingDrawer = ({isOpen, closeDrawer}: {isOpen: boolean, closeD
 
     const submitListingForm = async () => {
         const apiUrl = import.meta.env.VITE_API_URL as string
+
         try {
-            var startDateRaw = new Date(formData.startDate as Date)
-            var endDateRaw = new Date(formData.endDate as Date)
-            var convertedMinLeaseDays
+            const startDateRaw = new Date(formData.startDate as Date)
+            const endDateRaw = new Date(formData.endDate as Date)
+
+            let convertedMinLeaseDays
             if (formData.duration) {
                 switch ((formData.durationUnit as UnitOptions)?.value) {
                     case "day":
-                        convertedMinLeaseDays = formData.duration;
-                        break;
+                        convertedMinLeaseDays = formData.duration
+                        break
                     case "week":
-                        convertedMinLeaseDays = formData.duration * 7;
-                        break;
+                        convertedMinLeaseDays = formData.duration * 7
+                        break
                     case "month":
-                        convertedMinLeaseDays = formData.duration * 30;
-                        break;
+                        convertedMinLeaseDays = formData.duration * 30
+                        break
                     case "year":
-                        convertedMinLeaseDays = formData.duration * 365;
-                        break;
+                        convertedMinLeaseDays = formData.duration * 365
+                        break
                     default:
                         convertedMinLeaseDays = formData.duration
                 }
             }
+
             const dataToSubmit = {
                 title: formData.title,
                 description: "test desc",
@@ -142,24 +149,52 @@ export const AddListingDrawer = ({isOpen, closeDrawer}: {isOpen: boolean, closeD
                 parkingAvailable: formData.parking,
                 status: (formData.status as StatusOption)?.value
             }
-            const res = await apiFetch(`${apiUrl}`, "/listings/create", {
+
+            const listingRes = await apiFetch(apiUrl, "/listings/create", {
                 method: "POST",
                 body: JSON.stringify(dataToSubmit)
             })
 
-            if (!res.ok) {
-                let errorText = `Request failed with status ${res.status}`
+            if (!listingRes.ok) {
+                let errorText = `Request failed with status ${listingRes.status}`
                 try {
-                    const errorData =await res.json()
-                    errorText = errorData.error || errorData 
+                    const errorData = await listingRes.json()
+                    errorText = errorData.error || errorData
                 } catch {
-                    errorText = res.statusText || errorText
+                    errorText = listingRes.statusText || errorText
                 }
                 throw new Error(errorText)
             }
 
-            const data = await res.json()
-            console.log(data)
+            const listingData = await listingRes.json()
+
+            if (formData.image) {
+                const form = new FormData()
+                form.append("listingId", listingData.id)
+                form.append("altText", listingData.title)
+                form.append("sortOrder", "0")
+                form.append("isThumbnail", "true")
+                form.append("file", formData.image)
+
+                const imageRes = await apiFetch(apiUrl, "/listings/images/upload", {
+                    method: "POST",
+                    body: form
+                })
+
+                if (!imageRes.ok) {
+                    let errorText = `Request failed with status ${imageRes.status}`
+                    try {
+                        const errorData = await imageRes.json()
+                        errorText = errorData.error || errorData
+                    } catch {
+                        errorText = imageRes.statusText || errorText
+                    }
+                    throw new Error(errorText)
+                }
+            }
+            setFormData(initialFormData)
+            setStep(0)
+            closeDrawer()
         } catch (error) {
             console.log('error creating listing', error)
         }

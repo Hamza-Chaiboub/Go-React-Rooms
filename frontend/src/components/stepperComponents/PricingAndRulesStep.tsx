@@ -32,7 +32,7 @@ const VisuallyHiddenInput = styled('input')({
 export const PricingAndRulesStep = ({ formData, setFormData }: PricingAndRulesStepProps) => {
     const currencyOptions: CurrencyOption[] = [
         { value: "CAD", label: "Canadian Dollar" },
-        { value: "$", label: "American Dollar" }
+        { value: "USD", label: "American Dollar" }
     ]
     const statusOptions: StatusOption[] = [
         { value: "draft", label: "Draft" },
@@ -69,6 +69,12 @@ export const PricingAndRulesStep = ({ formData, setFormData }: PricingAndRulesSt
         setFormData(prev => ({
             ...prev,
             status: status
+        }))
+    }
+    const handleImageChange = (e: any) => {
+        setFormData(prev => ({
+            ...prev,
+            image: e.target.files[0]
         }))
     }
     return (
@@ -173,7 +179,7 @@ export const PricingAndRulesStep = ({ formData, setFormData }: PricingAndRulesSt
                         Upload Photo
                         <VisuallyHiddenInput
                             type="file"
-                            onChange={(event) => console.log(event.target.files)}
+                            onChange={handleImageChange}
                             multiple
                         />
                     </Button>

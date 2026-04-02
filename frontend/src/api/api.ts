@@ -16,11 +16,17 @@ export async function apiFetch(apiUrl: string, path: string, opts: RequestInit =
     if (["POST", "PUT", "PATCH", "DELETE"].includes(method)) {
         await ensureCsrf(apiUrl);
         const token = getCookie("grr_csrf");
-        opts.headers = {
-            ...(opts.headers || {}),
-            "X-CSRF-Token": token || "",
-            "Content-Type": "application/json",
-        };
+        const headers = new Headers(opts.headers || {});
+        
+        headers.set("X-CSRF-Token", token || "");
+
+        const isFormData = opts.body instanceof FormData;
+
+        if (!isFormData && !headers.has("Content-Type")) {
+            headers.set("Content-Type", "application/json");
+        }
+
+        opts.headers = headers;
     }
 
     return await fetch(`${apiUrl}${path}`, {
