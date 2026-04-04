@@ -5,6 +5,7 @@ import { HomeDetailsStep } from "./stepperComponents/HomeDetailsStep";
 import { LocationAndAvailabilityStep, type CountryOption, type UnitOptions } from "./stepperComponents/LocationAndAvailabilityStep";
 import { PricingAndRulesStep, type CurrencyOption, type StatusOption } from "./stepperComponents/PricingAndRulesStep";
 import type { PropsValue } from "react-select";
+import { apiFetch } from "../api/api";
 
 export type ListingFormData = {
     title: string;
@@ -32,37 +33,41 @@ export type ListingFormData = {
     petsAllowed: boolean;
     smokingAllowed: boolean;
     status: PropsValue<StatusOption> | null;
+    images: File[];
 }
 
-export const AddListingDrawer = ({isOpen, closeDrawer}: {isOpen: boolean, closeDrawer: () => void}) => {
+const initialFormData: ListingFormData = {
+    title: "",
+    bedrooms: null,
+    bathrooms: null,
+    area: null,
+    areaUnit: "sqm",
+    isFurnished: null,
+    parking: null,
+    isCustomBedroom: false,
+    isCustomBathroom: false,
+    preciseLocation: false,
+    country: null,
+    postalCode: "",
+    province: "",
+    city: "",
+    street: "",
+    blockNumber: "",
+    startDate: null,
+    endDate: null,
+    duration: 0,
+    durationUnit: null,
+    price: 0,
+    currency: null,
+    petsAllowed: false,
+    smokingAllowed: false,
+    status: null,
+    images: []
+}
+
+export const AddListingDrawer = ({ isOpen, closeDrawer, onSuccess }: { isOpen: boolean, closeDrawer: () => void, onSuccess: () => void }) => {
     const [step, setStep] = useState(0)
-    const [formData, setFormData] = useState<ListingFormData>({
-        title: "",
-        bedrooms: null,
-        bathrooms: null,
-        area: null,
-        areaUnit: "sqm",
-        isFurnished: null,
-        parking: null,
-        isCustomBedroom: false,
-        isCustomBathroom: false,
-        preciseLocation: false,
-        country: null,
-        postalCode: "",
-        province: "",
-        city: "",
-        street: "",
-        blockNumber: "",
-        startDate: null,
-        endDate: null,
-        duration: 0,
-        durationUnit: null,
-        price: 0,
-        currency: null,
-        petsAllowed: false,
-        smokingAllowed: false,
-        status: null
-    })
+    const [formData, setFormData] = useState<ListingFormData>(initialFormData)
     const steps = [
         {
             label: 'Home Details',
@@ -81,7 +86,7 @@ export const AddListingDrawer = ({isOpen, closeDrawer}: {isOpen: boolean, closeD
 
     const handleNextStepClick = () => {
         if (step === steps.length - 1) {
-            console.log(formData)
+            submitListingForm()
             return
         };
         setStep(prev => prev + 1)
@@ -91,6 +96,115 @@ export const AddListingDrawer = ({isOpen, closeDrawer}: {isOpen: boolean, closeD
         if (step === 0) return;
         setStep(prev => prev - 1)
     }
+
+    const submitListingForm = async () => {
+        const apiUrl = import.meta.env.VITE_API_URL as string
+
+        try {
+            const startDateRaw = new Date(formData.startDate as Date)
+            const endDateRaw = new Date(formData.endDate as Date)
+
+            let convertedMinLeaseDays
+            if (formData.duration) {
+                switch ((formData.durationUnit as UnitOptions)?.value) {
+                    case "day":
+                        convertedMinLeaseDays = formData.duration
+                        break
+                    case "week":
+                        convertedMinLeaseDays = formData.duration * 7
+                        break
+                    case "month":
+                        convertedMinLeaseDays = formData.duration * 30
+                        break
+                    case "year":
+                        convertedMinLeaseDays = formData.duration * 365
+                        break
+                    default:
+                        convertedMinLeaseDays = formData.duration
+                }
+            }
+
+            const dataToSubmit = {
+                title: formData.title,
+                description: "test desc",
+                addressLine1: formData.blockNumber + " " + formData.street,
+                city: formData.city,
+                province: formData.province,
+                country: (formData.country as CountryOption)?.value,
+                postalCode: formData.postalCode,
+                latitude: 0,
+                longitude: 0,
+                bedrooms: formData.bedrooms,
+                bathrooms: formData.bathrooms,
+                area: formData.area,
+                areaUnit: formData.areaUnit,
+                price: formData.price,
+                currency: (formData.currency as CurrencyOption)?.value,
+                availableFrom: startDateRaw.toISOString().replace('Z', '-05:00'), // I'll sort out the timezone later, get TZ offset from client
+                AvailableUntil: endDateRaw.toISOString().replace('Z', '-05:00'),
+                minLeaseDays: convertedMinLeaseDays,
+                isFurnished: formData.isFurnished,
+                petsAllowed: formData.petsAllowed,
+                smokingAllowed: formData.smokingAllowed,
+                parkingAvailable: formData.parking,
+                status: (formData.status as StatusOption)?.value
+            }
+
+            const listingRes = await apiFetch(apiUrl, "/listings/create", {
+                method: "POST",
+                body: JSON.stringify(dataToSubmit)
+            })
+
+            if (!listingRes.ok) {
+                let errorText = `Request failed with status ${listingRes.status}`
+                try {
+                    const errorData = await listingRes.json()
+                    errorText = errorData.error || errorData
+                } catch {
+                    errorText = listingRes.statusText || errorText
+                }
+                throw new Error(errorText)
+            }
+
+            const listingData = await listingRes.json()
+
+            if (formData.images.length > 0) {
+                const form = new FormData()
+                form.append("listingId", listingData.id)
+                form.append("altText", listingData.title)
+                form.append("thumbnailIndex", "0")
+
+                formData.images.forEach((file) => {
+                    form.append("files", file)
+                })
+
+                const imageRes = await apiFetch(apiUrl, "/listings/images/upload", {
+                    method: "POST",
+                    body: form
+                })
+
+                if (!imageRes.ok) {
+                    let errorText = `Request failed with status ${imageRes.status}`
+                    try {
+                        const errorData = await imageRes.json()
+                        errorText = errorData.error || errorData
+                    } catch {
+                        errorText = imageRes.statusText || errorText
+                    }
+                    throw new Error(errorText)
+                }
+
+                const uploadedImages = await imageRes.json()
+                console.log(uploadedImages)
+            }
+            setFormData(initialFormData)
+            setStep(0)
+            onSuccess?.()
+            closeDrawer()
+        } catch (error) {
+            console.log('error creating listing', error)
+        }
+    }
     return (
         <Drawer
             anchor="right"
@@ -98,7 +212,7 @@ export const AddListingDrawer = ({isOpen, closeDrawer}: {isOpen: boolean, closeD
             onClose={closeDrawer}
             sx={{
                 '& .MuiDrawer-paper': {
-                    width: { xs: '100%', sm: '70%', lg: '40%' },
+                    width: { xs: '100%', sm: '80%', lg: '40%' },
                     paddingX: 4,
                     paddingY: 2
                 }

@@ -2,8 +2,9 @@ import { Button, FormControl, styled, ToggleButton, ToggleButtonGroup } from "@m
 import NumberField from "../NumberField"
 import Select, { type PropsValue, } from "react-select"
 import type { ListingFormData } from "../AddListingDrawer"
-import type { Dispatch, SetStateAction } from "react"
+import  { type Dispatch, type SetStateAction } from "react"
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
+import * as React from "react";
 
 type PricingAndRulesStepProps = {
     formData: ListingFormData,
@@ -31,8 +32,8 @@ const VisuallyHiddenInput = styled('input')({
 
 export const PricingAndRulesStep = ({ formData, setFormData }: PricingAndRulesStepProps) => {
     const currencyOptions: CurrencyOption[] = [
-        { value: "CA$", label: "Canadian Dollar" },
-        { value: "$", label: "American Dollar" }
+        { value: "CAD", label: "Canadian Dollar" },
+        { value: "USD", label: "American Dollar" }
     ]
     const statusOptions: StatusOption[] = [
         { value: "draft", label: "Draft" },
@@ -69,6 +70,14 @@ export const PricingAndRulesStep = ({ formData, setFormData }: PricingAndRulesSt
         setFormData(prev => ({
             ...prev,
             status: status
+        }))
+    }
+    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = Array.from(e.target.files ?? [])
+
+        setFormData(prev => ({
+            ...prev,
+            images: files
         }))
     }
     return (
@@ -160,9 +169,9 @@ export const PricingAndRulesStep = ({ formData, setFormData }: PricingAndRulesSt
                 </FormControl>
             </section>
             <section className="flex gap-4 my-4">
-                {/* thumbnail */}
+                {/* photos */}
                 <FormControl className="w-1/2">
-                    <span className="mb-2">Thumbnail</span>
+                    <span className="mb-2">Photos</span>
                     <Button
                         component="label"
                         role={undefined}
@@ -170,13 +179,19 @@ export const PricingAndRulesStep = ({ formData, setFormData }: PricingAndRulesSt
                         tabIndex={-1}
                         startIcon={<CloudUploadIcon />}
                     >
-                        Upload Photo
+                        Upload Photos
                         <VisuallyHiddenInput
                             type="file"
-                            onChange={(event) => console.log(event.target.files)}
+                            accept="image/png,image/jpeg,image/webp"
+                            onChange={handleImageChange}
                             multiple
                         />
                     </Button>
+                    {formData.images.length > 0 && (
+                        <div className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+                            {formData.images.length} file(s) selected
+                        </div>
+                    )}
                 </FormControl>
                 {/* status */}
                 <FormControl className="w-1/2">

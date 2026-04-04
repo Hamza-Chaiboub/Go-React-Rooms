@@ -21,6 +21,14 @@ const TODAY = new Date();
 
 export const LocationAndAvailabilityStep = ({ formData, setFormData }: LocationAndAvailabilityStepProps) => {
     const [loadingPreciseLocation, setLoadingPreciseLocation] = useState<boolean>(false)
+    const [isAuto, setIsAuto] = useState<boolean>(false)
+
+    useEffect(() => {
+        setFormData(prev => ({
+            ...prev,
+            startDate: TODAY
+        }))
+    }, [])
 
     const countryOptions: CountryOption[] = [
         { value: 'CA', label: 'Canada' },
@@ -103,15 +111,16 @@ export const LocationAndAvailabilityStep = ({ formData, setFormData }: LocationA
 
     useEffect(() => {
         if (!formData.preciseLocation) {
+            setIsAuto(false)
             console.log("precise location not selected")
             setFormData(prev => ({
                 ...prev,
-                country: null,
-                postalCode: "",
-                province: "",
-                city: "",
-                street: "",
-                blockNumber: ""
+                country: formData.country,
+                postalCode: formData.postalCode,
+                province: formData.province,
+                city: formData.city,
+                street: formData.street,
+                blockNumber: formData.blockNumber
             }))
             return;
         };
@@ -120,6 +129,7 @@ export const LocationAndAvailabilityStep = ({ formData, setFormData }: LocationA
             return;
         }
         setLoadingPreciseLocation(true)
+        setIsAuto(true)
         navigator.geolocation.getCurrentPosition(
             async (position) => {
                 const { latitude, longitude } = position.coords
@@ -181,7 +191,7 @@ export const LocationAndAvailabilityStep = ({ formData, setFormData }: LocationA
                 {/* Coutry */}
                 <FormControl className="w-1/2">
                     <span className="mb-2">Country</span>
-                    <Select<CountryOption> options={countryOptions} value={formData.country} onChange={handleCountryChange} />
+                    <Select<CountryOption> isDisabled={isAuto} options={countryOptions} value={formData.country} onChange={handleCountryChange} />
                 </FormControl>
                 {/* postal / zip code */}
                 <FormControl className="w-1/2">
@@ -190,7 +200,7 @@ export const LocationAndAvailabilityStep = ({ formData, setFormData }: LocationA
                     </span>
                     <input
                         type="text"
-                        disabled={!formData.country}
+                        disabled={!formData.country || isAuto}
                         className='text-slate-950!  dark:bg-slate-700 border border-slate-500/25 dark:border-slate-600 w-full p-1.5 dark:text-slate-200! rounded-lg disabled:bg-slate-200!'
                         onChange={handlePostalZipCode}
                         value={formData.postalCode} />
@@ -204,7 +214,7 @@ export const LocationAndAvailabilityStep = ({ formData, setFormData }: LocationA
                     </span>
                     <input
                         type="text"
-                        disabled={!formData.postalCode}
+                        disabled={!formData.postalCode || isAuto}
                         className='text-slate-950!  dark:bg-slate-700 border border-slate-500/25 dark:border-slate-600 w-full p-1.5 dark:text-slate-200! rounded-lg disabled:bg-slate-200!'
                         onChange={handleProvinceChange}
                         value={formData.province}
@@ -215,7 +225,7 @@ export const LocationAndAvailabilityStep = ({ formData, setFormData }: LocationA
                     <span className="mb-2">City</span>
                     <input
                         type="text"
-                        disabled={!formData.province}
+                        disabled={!formData.province || isAuto}
                         className='text-slate-950!  dark:bg-slate-700 border border-slate-500/25 dark:border-slate-600 w-full p-1.5 dark:text-slate-200! rounded-lg disabled:bg-slate-200!'
                         onChange={handleCityChange}
                         value={formData.city}
@@ -228,7 +238,7 @@ export const LocationAndAvailabilityStep = ({ formData, setFormData }: LocationA
                     <span className="mb-2">Street</span>
                     <input
                         type="text"
-                        disabled={!formData.city}
+                        disabled={!formData.city || isAuto}
                         className='text-slate-950!  dark:bg-slate-700 border border-slate-500/25 dark:border-slate-600 w-full p-1.5 dark:text-slate-200! rounded-lg disabled:bg-slate-200!'
                         onChange={handleStreet}
                         value={formData.street}
@@ -239,7 +249,7 @@ export const LocationAndAvailabilityStep = ({ formData, setFormData }: LocationA
                     <span className="mb-2">Block Number</span>
                     <input
                         type="text"
-                        disabled={!formData.street}
+                        disabled={!formData.street || isAuto}
                         className='text-slate-950!  dark:bg-slate-700 border border-slate-500/25 dark:border-slate-600 w-full p-1.5 dark:text-slate-200! rounded-lg disabled:bg-slate-200!'
                         onChange={handleBlockNumber}
                         value={formData.blockNumber}
@@ -248,29 +258,33 @@ export const LocationAndAvailabilityStep = ({ formData, setFormData }: LocationA
             </section>
             {/* date availability */}
             <section className="flex justify-between gap-4 my-4">
-                <FormControl className="">
+                <FormControl className="w-1/2">
                     <span className="mb-2">Available From</span>
-                    <DatePicker
-                        selected={formData.startDate}
-                        onChange={handleStartDate}
-                        selectsStart
-                        startDate={formData.startDate}
-                        endDate={formData.endDate}
-                        minDate={TODAY}
-                        inline
-                    />
+                    <div>
+                        <DatePicker
+                            selected={formData.startDate || TODAY}
+                            onChange={handleStartDate}
+                            selectsStart
+                            startDate={formData.startDate || TODAY}
+                            endDate={formData.endDate}
+                            minDate={TODAY}
+                            inline
+                        />
+                    </div>
                 </FormControl>
-                <FormControl className="">
+                <FormControl className="w-1/2">
                     <span className="mb-2">Available Until</span>
-                    <DatePicker
-                        selected={formData.endDate}
-                        selectsEnd
-                        startDate={formData.startDate}
-                        endDate={formData.endDate}
-                        minDate={TODAY}
-                        onChange={handleEndDate}
-                        inline
-                    />
+                    <div>
+                        <DatePicker
+                            selected={formData.endDate}
+                            selectsEnd
+                            startDate={formData.startDate || TODAY}
+                            endDate={formData.endDate}
+                            minDate={TODAY}
+                            onChange={handleEndDate}
+                            inline
+                        />
+                    </div>
                 </FormControl>
             </section>
             {/* duration */}
