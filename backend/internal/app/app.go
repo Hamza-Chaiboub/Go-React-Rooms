@@ -113,14 +113,20 @@ func New(cfg config.Config) (*App, error) {
 		Rooms:    roomRepo,
 		Messages: messagesRepo,
 	}
-	listingHandler := listing.Handler{
-		Listings: listingRepo,
-	}
 	listingImagesRepo := listing_images.Repo{
 		DB: pg.DB,
 	}
 	ctx := context.Background()
 	s3Storage, err := storage.NewS3Storage(ctx)
+	if err != nil {
+		return nil, err
+	}
+	listingHandler := listing.Handler{
+		Listings:      listingRepo,
+		ListingImages: listingImagesRepo,
+		S3:            s3Storage,
+		DB:            pg.DB,
+	}
 	roomsHandler := middleware.RequireAuth(sessionStore, http.HandlerFunc(roomHandler.HandleRooms))
 	mux.Handle("/rooms", roomsHandler)
 
@@ -141,6 +147,8 @@ func New(cfg config.Config) (*App, error) {
 	var createListingHandler http.Handler
 	createListingHandler = http.HandlerFunc(listingHandler.CreateListing)
 	createListingHandler = middleware.RequireAuth(sessionStore, createListingHandler)
+	createListingHandler = security.CSRFMiddleware(createListingHandler)
+	createListingHandler = security.BodyLimit(12<<20, createListingHandler)
 	mux.Handle("/listings/create", createListingHandler)
 
 	// get all listings
@@ -148,26 +156,6 @@ func New(cfg config.Config) (*App, error) {
 	listListingsHandler = http.HandlerFunc(listingHandler.ListListings)
 	listListingsHandler = security.CSRFMiddleware(listListingsHandler)
 	mux.Handle("/listings", listListingsHandler)
-
-	// upload images to S3
-	//ctx := context.Background()
-	//s3Storage, err := storage.NewS3Storage(ctx)
-	//if err != nil {
-	//	return nil, err
-	//}
-	//uploadHandler := storage.NewUploadHandler(s3Storage)
-	//var uploadS3Handler http.Handler
-	//uploadS3Handler = http.HandlerFunc(uploadHandler.CreateImageUploadURL)
-	//uploadS3Handler = middleware.RequireAuth(sessionStore, uploadS3Handler)
-	//uploadS3Handler = security.CSRFMiddleware(uploadS3Handler)
-	//mux.Handle("/uploads/image", uploadS3Handler)
-	imageUploadHandler := listing.NewImageUploadhandler(listingRepo, listingImagesRepo, s3Storage)
-	var uploadListingImageHandler http.Handler
-	uploadListingImageHandler = http.HandlerFunc(imageUploadHandler.UploadListingImage)
-	uploadListingImageHandler = middleware.RequireAuth(sessionStore, uploadListingImageHandler)
-	uploadListingImageHandler = security.CSRFMiddleware(uploadListingImageHandler)
-	uploadListingImageHandler = security.BodyLimit(12<<20, uploadListingImageHandler)
-	mux.Handle("/listings/images/upload", uploadListingImageHandler)
 
 	// get image/view URL
 	uploadHandler := storage.NewUploadHandler(s3Storage)
@@ -183,9 +171,6 @@ func New(cfg config.Config) (*App, error) {
 	mux.Handle("/ws", wsHandler)
 
 	var handler http.Handler = mux
-	//handler := httpserver.NewHandler(httpserver.CORSConfig{
-	//	Origins: cfg.CorsOrigin,
-	//}, mux)
 	handler = security.SecurityHeaders(handler)
 	handler = httpserver.NewHandler(httpserver.CORSConfig{
 		Origins: cfg.CorsOrigin,

@@ -28,10 +28,14 @@ type Repo struct {
 	DB *sql.DB
 }
 
-func (repo Repo) InsertListingImage(ctx context.Context, params InsertListingImageParams) (ListingImage, error) {
+type queryRower interface {
+	QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row
+}
+
+func insertListingImage(ctx context.Context, db queryRower, params InsertListingImageParams) (ListingImage, error) {
 	var image ListingImage
 
-	err := repo.DB.QueryRowContext(ctx, `
+	err := db.QueryRowContext(ctx, `
 		INSERT INTO listing_images (
 			listing_id,
 		    s3_key,
@@ -65,4 +69,12 @@ func (repo Repo) InsertListingImage(ctx context.Context, params InsertListingIma
 	)
 
 	return image, err
+}
+
+func (repo Repo) InsertListingImage(ctx context.Context, params InsertListingImageParams) (ListingImage, error) {
+	return insertListingImage(ctx, repo.DB, params)
+}
+
+func (repo Repo) InsertListingImageTx(ctx context.Context, tx *sql.Tx, params InsertListingImageParams) (ListingImage, error) {
+	return insertListingImage(ctx, tx, params)
 }
