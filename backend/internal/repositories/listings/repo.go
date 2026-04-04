@@ -8,41 +8,45 @@ import (
 )
 
 type Listing struct {
-	ID               string        `json:"id"`
-	UserID           string        `json:"userId"`
-	Title            string        `json:"title"`
-	Description      *string       `json:"description,omitempty"`
-	AddressLine1     string        `json:"addressLine1"`
-	AddressLine2     *string       `json:"addressLine2,omitempty"`
-	City             string        `json:"city"`
-	Province         string        `json:"province"`
-	Country          string        `json:"country"`
-	PostalCode       *string       `json:"postalCode,omitempty"`
-	Latitude         float64       `json:"latitude"`
-	Longitude        float64       `json:"longitude"`
-	Bedrooms         int           `json:"bedrooms"`
-	Bathrooms        float64       `json:"bathrooms"`
-	Area             float64       `json:"area"`
-	AreaUnit         string        `json:"areaUnit"`
-	Price            float64       `json:"price"`
-	Currency         string        `json:"currency"`
-	AvailableFrom    time.Time     `json:"availableFrom"`
-	AvailableUntil   *time.Time    `json:"availableUntil,omitempty"`
-	MinLeaseDays     *int          `json:"minLeaseDays,omitempty"`
-	IsFurnished      bool          `json:"isFurnished"`
-	PetsAllowed      bool          `json:"petsAllowed"`
-	SmokingAllowed   bool          `json:"smokingAllowed"`
-	ParkingAvailable bool          `json:"parkingAvailable"`
-	Status           string        `json:"status"`
-	CreatedAt        time.Time     `json:"createdAt"`
-	UpdatedAt        time.Time     `json:"updatedAt"`
-	Thumbnail        *ListingImage `json:"thumbnail,omitempty"`
+	ID               string         `json:"id"`
+	UserID           string         `json:"userId"`
+	Title            string         `json:"title"`
+	Description      *string        `json:"description,omitempty"`
+	AddressLine1     string         `json:"addressLine1"`
+	AddressLine2     *string        `json:"addressLine2,omitempty"`
+	City             string         `json:"city"`
+	Province         string         `json:"province"`
+	Country          string         `json:"country"`
+	PostalCode       *string        `json:"postalCode,omitempty"`
+	Latitude         float64        `json:"latitude"`
+	Longitude        float64        `json:"longitude"`
+	Bedrooms         int            `json:"bedrooms"`
+	Bathrooms        float64        `json:"bathrooms"`
+	Area             float64        `json:"area"`
+	AreaUnit         string         `json:"areaUnit"`
+	Price            float64        `json:"price"`
+	Currency         string         `json:"currency"`
+	AvailableFrom    time.Time      `json:"availableFrom"`
+	AvailableUntil   *time.Time     `json:"availableUntil,omitempty"`
+	MinLeaseDays     *int           `json:"minLeaseDays,omitempty"`
+	IsFurnished      bool           `json:"isFurnished"`
+	PetsAllowed      bool           `json:"petsAllowed"`
+	SmokingAllowed   bool           `json:"smokingAllowed"`
+	ParkingAvailable bool           `json:"parkingAvailable"`
+	Status           string         `json:"status"`
+	CreatedAt        time.Time      `json:"createdAt"`
+	UpdatedAt        time.Time      `json:"updatedAt"`
+	Images           []ListingImage `json:"thumbnail,omitempty"`
 }
 
 type ListingImage struct {
-	ID      string
-	S3Key   string
-	AltText string
+	ID          string    `json:"id"`
+	ListingID   string    `json:"listingId"`
+	S3Key       string    `json:"s3Key"`
+	AltText     *string   `json:"altText,omitempty"`
+	SortOrder   int       `json:"sortOrder"`
+	IsThumbnail bool      `json:"isThumbnail"`
+	CreatedAt   time.Time `json:"createdAt"`
 }
 
 type Repo struct {
@@ -77,9 +81,13 @@ type InsertParams struct {
 	Status           string
 }
 
-func (repo Repo) Insert(ctx context.Context, params InsertParams) (Listing, error) {
+type queryRower interface {
+	QueryRowContext(ctc context.Context, query string, arg ...any) *sql.Row
+}
+
+func insertListing(ctx context.Context, db queryRower, params InsertParams) (Listing, error) {
 	var listing Listing
-	err := repo.DB.QueryRowContext(ctx, `
+	err := db.QueryRowContext(ctx, `
 		INSERT INTO listings (
 			user_id, 
 		    title, 
@@ -200,6 +208,14 @@ func (repo Repo) Insert(ctx context.Context, params InsertParams) (Listing, erro
 	return listing, err
 }
 
+func (repo Repo) Insert(ctx context.Context, params InsertParams) (Listing, error) {
+	return insertListing(ctx, repo.DB, params)
+}
+
+func (repo Repo) InsertTx(ctx context.Context, tx *sql.Tx, params InsertParams) (Listing, error) {
+	return insertListing(ctx, tx, params)
+}
+
 func (repo Repo) GetAllListings(ctx context.Context) ([]Listing, error) {
 	rows, err := repo.DB.QueryContext(ctx, `
 		SELECT
@@ -233,7 +249,8 @@ func (repo Repo) GetAllListings(ctx context.Context) ([]Listing, error) {
 			l.updated_at,
 			li.id::text,
 			li.s3_key,
-			li.alt_text
+			li.alt_text,
+			li.created_at
 		FROM listings l
 		LEFT JOIN listing_images li
 		    ON li.listing_id = l.id
@@ -247,11 +264,16 @@ func (repo Repo) GetAllListings(ctx context.Context) ([]Listing, error) {
 
 	var out []Listing
 	s3Storage, err := storage.NewS3Storage(ctx)
+	if err != nil {
+		return nil, err
+	}
 
 	for rows.Next() {
 		var listing Listing
 
-		var imageID, imageS3Key, imageAltText *string
+		var imageID, imageS3Key string
+		var imageAltText *string
+		var imageCreatedAt time.Time
 
 		err := rows.Scan(
 			&listing.ID,
@@ -285,20 +307,27 @@ func (repo Repo) GetAllListings(ctx context.Context) ([]Listing, error) {
 			&imageID,
 			&imageS3Key,
 			&imageAltText,
+			&imageCreatedAt,
 		)
 		if err != nil {
 			return nil, err
 		}
 
-		if imageID != nil {
-			thumbnailUrl, err := s3Storage.CreatePresignedGetURL(ctx, *imageS3Key)
+		if imageID != "" {
+			thumbnailUrl, err := s3Storage.CreatePresignedGetURL(ctx, imageS3Key)
 			if err != nil {
 				continue
 			}
-			listing.Thumbnail = &ListingImage{
-				ID:      *imageID,
-				S3Key:   thumbnailUrl,
-				AltText: *imageAltText,
+			listing.Images = []ListingImage{
+				{
+					ID:          imageID,
+					ListingID:   listing.ID,
+					S3Key:       thumbnailUrl,
+					AltText:     imageAltText,
+					SortOrder:   0,
+					IsThumbnail: true,
+					CreatedAt:   imageCreatedAt,
+				},
 			}
 		}
 
