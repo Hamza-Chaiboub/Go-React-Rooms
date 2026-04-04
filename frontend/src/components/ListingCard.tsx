@@ -1,39 +1,60 @@
-import { Card, CardMedia, CardContent, Typography, IconButton } from "@mui/material"
+import { Card, CardMedia, CardContent, Typography, IconButton, Skeleton } from "@mui/material"
 import FavoriteIcon from '@mui/icons-material/Favorite';
 import KingBedOutlinedIcon from '@mui/icons-material/KingBedOutlined';
 import CalendarMonthOutlinedIcon from '@mui/icons-material/CalendarMonthOutlined';
 import SelectAllOutlinedIcon from '@mui/icons-material/SelectAllOutlined';
-import Flat from '../assets/flat.webp'
 import { useState } from "react";
 
 type ListinCardType = {
+    listingId: string;
     price: number;
     address: string;
     beds: number;
     date: string;
     area: number;
+    title: string;
+    areaUnit: string;
+    thumbnail: {
+        ID: string;
+        S3Key: string;
+        AltText: string;
+    } | null
 }
 
-export const ListingCard = ({price, address, beds, date, area}: ListinCardType) => {
+export const ListingCard = ({listingId, price, address, beds, date, area, title, areaUnit, thumbnail}: ListinCardType) => {
     const [isFavorite, setIsFavourite] = useState<boolean>(false)
     const handleFavouriteChange = () => {
         setIsFavourite(prev => !prev)
     }
     return (
-        <Card className='flex sm:flex-row flex-col grow shadow-none! border border-slate-200 dark:border-slate-600/75 rounded-lg! bg-slate-100! dark:bg-slate-800! dark:text-white!'>
-            <CardMedia
-                className='h-36 w-full! sm:w-46! cursor-pointer'
-                component="img"
-                image={Flat}
-                onClick={() => console.log("clicked")}
-            />
+        <Card key={listingId} className='flex sm:flex-row flex-col grow shadow-none! border border-slate-200 dark:border-slate-600/75 rounded-lg! bg-slate-100! dark:bg-slate-800! dark:text-white!'>
+            <div className="w-64!">
+            {
+                thumbnail ? (
+                    <CardMedia
+                        className='h-full cursor-pointer'
+                        component="img"
+                        image={thumbnail?.S3Key}
+                        alt={thumbnail?.AltText}
+                        onClick={() => console.log(thumbnail?.S3Key)}
+                    />
+                ) : (
+                    <Skeleton
+                        className="h-full! cursor-pointer"
+                        variant="rectangular"
+                        onClick={() => console.log("clicked")}
+                    />
+                )
+            }
+            </div>
+            
             <CardContent className='w-full max-h-36 flex flex-col gap-3'>
                 <div className='flex justify-between'>
                     <div>
                         <Typography className='flex gap-0.5'>
                             <span className='text-blue-600 dark:text-blue-500 font-bold'>${price}</span><span>/</span>month
                         </Typography>
-                        <Typography fontWeight={900}>Flat for rent</Typography>
+                        <Typography fontWeight={900}>{title}</Typography>
                         <Typography fontSize={12} className='text-slate-600 dark:text-slate-400'>{address}</Typography>
                     </div>
                     <div>
@@ -46,7 +67,7 @@ export const ListingCard = ({price, address, beds, date, area}: ListinCardType) 
                 <div className='flex sm:justify-start justify-between items-center gap-3 text-slate-600 text-xs!'>
                     <div className='flex items-center gap-1 text-slate-950 dark:text-slate-200'><KingBedOutlinedIcon/> <div className='text-slate-600 dark:text-slate-400'>{beds}</div></div>
                     <div className='flex items-center gap-1 text-slate-950 dark:text-slate-200'><CalendarMonthOutlinedIcon/> <div className='text-slate-600 dark:text-slate-400'>{date}</div></div>
-                    <div className='flex items-center gap-1 text-slate-950 dark:text-slate-200'><SelectAllOutlinedIcon/> <div className='text-slate-600 dark:text-slate-400'>{area} m<sup>2</sup></div></div>
+                    <div className='flex items-center gap-1 text-slate-950 dark:text-slate-200'><SelectAllOutlinedIcon/> <div className='text-slate-600 dark:text-slate-400'>{area} {areaUnit}<sup>2</sup></div></div>
                 </div>
             </CardContent>
         </Card>

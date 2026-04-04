@@ -3,49 +3,46 @@ package listings
 import (
 	"context"
 	"database/sql"
+	"go-react-rooms/internal/storage"
 	"time"
 )
 
 type Listing struct {
-	ID               string         `json:"id"`
-	UserID           string         `json:"userId"`
-	Title            string         `json:"title"`
-	Description      *string        `json:"description,omitempty"`
-	AddressLine1     string         `json:"addressLine1"`
-	AddressLine2     *string        `json:"addressLine2,omitempty"`
-	City             string         `json:"city"`
-	Province         string         `json:"province"`
-	Country          string         `json:"country"`
-	PostalCode       *string        `json:"postalCode,omitempty"`
-	Latitude         float64        `json:"latitude"`
-	Longitude        float64        `json:"longitude"`
-	Bedrooms         int            `json:"bedrooms"`
-	Bathrooms        float64        `json:"bathrooms"`
-	Area             float64        `json:"area"`
-	AreaUnit         string         `json:"areaUnit"`
-	Price            float64        `json:"price"`
-	Currency         string         `json:"currency"`
-	AvailableFrom    time.Time      `json:"availableFrom"`
-	AvailableUntil   *time.Time     `json:"availableUntil,omitempty"`
-	MinLeaseDays     *int           `json:"minLeaseDays,omitempty"`
-	IsFurnished      bool           `json:"isFurnished"`
-	PetsAllowed      bool           `json:"petsAllowed"`
-	SmokingAllowed   bool           `json:"smokingAllowed"`
-	ParkingAvailable bool           `json:"parkingAvailable"`
-	Status           string         `json:"status"`
-	CreatedAt        time.Time      `json:"createdAt"`
-	UpdatedAt        time.Time      `json:"updatedAt"`
-	Images           []ListingImage `json:"images,omitempty"`
+	ID               string        `json:"id"`
+	UserID           string        `json:"userId"`
+	Title            string        `json:"title"`
+	Description      *string       `json:"description,omitempty"`
+	AddressLine1     string        `json:"addressLine1"`
+	AddressLine2     *string       `json:"addressLine2,omitempty"`
+	City             string        `json:"city"`
+	Province         string        `json:"province"`
+	Country          string        `json:"country"`
+	PostalCode       *string       `json:"postalCode,omitempty"`
+	Latitude         float64       `json:"latitude"`
+	Longitude        float64       `json:"longitude"`
+	Bedrooms         int           `json:"bedrooms"`
+	Bathrooms        float64       `json:"bathrooms"`
+	Area             float64       `json:"area"`
+	AreaUnit         string        `json:"areaUnit"`
+	Price            float64       `json:"price"`
+	Currency         string        `json:"currency"`
+	AvailableFrom    time.Time     `json:"availableFrom"`
+	AvailableUntil   *time.Time    `json:"availableUntil,omitempty"`
+	MinLeaseDays     *int          `json:"minLeaseDays,omitempty"`
+	IsFurnished      bool          `json:"isFurnished"`
+	PetsAllowed      bool          `json:"petsAllowed"`
+	SmokingAllowed   bool          `json:"smokingAllowed"`
+	ParkingAvailable bool          `json:"parkingAvailable"`
+	Status           string        `json:"status"`
+	CreatedAt        time.Time     `json:"createdAt"`
+	UpdatedAt        time.Time     `json:"updatedAt"`
+	Thumbnail        *ListingImage `json:"thumbnail,omitempty"`
 }
 
 type ListingImage struct {
-	ID          string
-	ListingID   string
-	S3Key       string
-	AltText     *string
-	SortOrder   int
-	IsThumbnail bool
-	CreatedAt   time.Time
+	ID      string
+	S3Key   string
+	AltText string
 }
 
 type Repo struct {
@@ -235,14 +232,12 @@ func (repo Repo) GetAllListings(ctx context.Context) ([]Listing, error) {
 			l.created_at,
 			l.updated_at,
 			li.id::text,
-			li.listing_id::text,
 			li.s3_key,
-			li.alt_text,
-			li.sort_order,
-			li.is_thumbnail,
-			li.created_at
+			li.alt_text
 		FROM listings l
-		LEFT JOIN listing_images li ON li.listing_id = l.id
+		LEFT JOIN listing_images li
+		    ON li.listing_id = l.id
+			AND li.is_thumbnail = true
 		ORDER BY l.created_at DESC, li.sort_order ASC
 	`)
 	if err != nil {
@@ -250,19 +245,13 @@ func (repo Repo) GetAllListings(ctx context.Context) ([]Listing, error) {
 	}
 	defer rows.Close()
 
-	listingsByID := make(map[string]*Listing)
-	var orderedIDs []string
+	var out []Listing
+	s3Storage, err := storage.NewS3Storage(ctx)
 
 	for rows.Next() {
 		var listing Listing
 
-		var imageID sql.NullString
-		var imageListingID sql.NullString
-		var imageS3Key sql.NullString
-		var imageAltText sql.NullString
-		var imageSortOrder sql.NullInt64
-		var imageIsThumbnail sql.NullBool
-		var imageCreatedAt sql.NullTime
+		var imageID, imageS3Key, imageAltText *string
 
 		err := rows.Scan(
 			&listing.ID,
@@ -294,52 +283,27 @@ func (repo Repo) GetAllListings(ctx context.Context) ([]Listing, error) {
 			&listing.CreatedAt,
 			&listing.UpdatedAt,
 			&imageID,
-			&imageListingID,
 			&imageS3Key,
 			&imageAltText,
-			&imageSortOrder,
-			&imageIsThumbnail,
-			&imageCreatedAt,
 		)
 		if err != nil {
 			return nil, err
 		}
 
-		existing, found := listingsByID[listing.ID]
-		if !found {
-			listing.Images = []ListingImage{}
-			listingsByID[listing.ID] = &listing
-			orderedIDs = append(orderedIDs, listing.ID)
-			existing = &listing
-		}
-
-		if imageID.Valid {
-			var altText *string
-			if imageAltText.Valid {
-				altText = &imageAltText.String
+		if imageID != nil {
+			thumbnailUrl, err := s3Storage.CreatePresignedGetURL(ctx, *imageS3Key)
+			if err != nil {
+				continue
 			}
-
-			existing.Images = append(existing.Images, ListingImage{
-				ID:          imageID.String,
-				ListingID:   imageListingID.String,
-				S3Key:       imageS3Key.String,
-				AltText:     altText,
-				SortOrder:   int(imageSortOrder.Int64),
-				IsThumbnail: imageIsThumbnail.Bool,
-				CreatedAt:   imageCreatedAt.Time,
-			})
+			listing.Thumbnail = &ListingImage{
+				ID:      *imageID,
+				S3Key:   thumbnailUrl,
+				AltText: *imageAltText,
+			}
 		}
-	}
 
-	if err := rows.Err(); err != nil {
-		return nil, err
+		out = append(out, listing)
 	}
-
-	out := make([]Listing, 0, len(orderedIDs))
-	for _, id := range orderedIDs {
-		out = append(out, *listingsByID[id])
-	}
-
 	return out, nil
 }
 

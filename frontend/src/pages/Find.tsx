@@ -1,15 +1,52 @@
 import 'leaflet/dist/leaflet.css'
 import { Map } from '../components/Map'
-import { Breadcrumbs, IconButton, InputBase, Link, Typography } from '@mui/material'
+import { Alert, Breadcrumbs, IconButton, InputBase, Link, Typography } from '@mui/material'
 import NavigateNextIcon from '@mui/icons-material/NavigateNext'
 import SearchIcon from '@mui/icons-material/Search';
 import AddIcon from '@mui/icons-material/Add';
 import { ListingCard } from '../components/ListingCard';
 import { ListingFilters } from '../components/ListingFilters';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { AddListingDrawer } from '../components/AddListingDrawer';
+import { apiFetch } from '../api/api';
+
+type Listing = {
+    id: string;
+    userId: string;
+    title: string;
+    description: string;
+    addressLine1: string;
+    city: string;
+    province: string;
+    country: string;
+    postalCode: string;
+    latitude: number;
+    longitude: number;
+    bedrooms: number;
+    bathrooms: number;
+    area: number;
+    areaUnit: string;
+    price: number;
+    currency: string;
+    availableFrom: string;
+    availableUntil: string;
+    minLeaseDays: number;
+    isFurnished: boolean;
+    petsAllowed: boolean;
+    smokingAllowed: boolean;
+    parkingAvailable: boolean;
+    status: string;
+    createdAt: string;
+    updatedAt: string;
+    thumbnail: {
+        ID: string;
+        S3Key: string;
+        AltText: string;
+    }
+}
 
 export const Find = ({ className }: {className?: string}) => {
+    const apiUrl = import.meta.env.VITE_API_URL as string
     const breadcrumbs = [
         <Link href="/" key="1" className='text-inherit' >Home</Link>,
         <Typography className='text-slate-950 dark:text-slate-300'>Find</Typography>
@@ -17,6 +54,9 @@ export const Find = ({ className }: {className?: string}) => {
 
     const [viewMode, setViewMode] = useState<'list' | 'grid' | string>('flex-col lg:flex-row')
     const [openDrawer, setOpenDrawer] = useState(false)
+    const [listings, setListings] = useState<Listing[]>([])
+    const [isLoadingListings, setIsLoadingListings] = useState<boolean>(false)
+    const [refreshTrigger, setRefreshTrigger] = useState<number>(0)
 
     const handleViewChange = (mode: 'list' | 'grid' | string) => {
         setViewMode(mode)
@@ -24,6 +64,24 @@ export const Find = ({ className }: {className?: string}) => {
 
     const handleClickOpenDrawer = () => setOpenDrawer(true)
     const handleClickCloseDrawer = () => setOpenDrawer(false)
+    const refreshListings = () => setRefreshTrigger(prev => prev + 1)
+    useEffect(() => {
+        setIsLoadingListings(true)
+        async function getAllListings() {
+            const res = await apiFetch(`${apiUrl}`, "/listings")
+
+            if (!res.ok) {
+                throw new Error(`HTTP ${res.status}`)
+            }
+
+            const listingsList = await res.json()
+            setListings(listingsList.listings)
+            console.log(listingsList)
+        }
+
+        getAllListings()
+        setIsLoadingListings(false)
+    }, [apiUrl, refreshTrigger])
     return (
         <>
         <div className={`flex flex-col lg:flex-row px-2 md:px-2 ${className}`}>
@@ -33,7 +91,7 @@ export const Find = ({ className }: {className?: string}) => {
                     <Breadcrumbs separator={<NavigateNextIcon fontSize='small' className='text-slate-800 dark:text-slate-500' />}>{breadcrumbs}</Breadcrumbs>
                     <div>
                         <Typography fontSize={28} fontWeight={900} className='font-sans! text-slate-700! dark:text-slate-100!'>Find your roommate(s)</Typography>
-                        <Typography>376 people found</Typography>
+                        <Typography>{listings && listings.length > 0 ? listings.length : 0} people found</Typography>
                     </div>
                     <div className='flex items-center gap-4'>
                         <div className='flex items-center flex-1 border rounded-md border-slate-600 dark:bg-slate-800'>
@@ -51,18 +109,33 @@ export const Find = ({ className }: {className?: string}) => {
                                 <AddIcon />
                                 <Typography fontWeight={700} fontSize={14}>List New</Typography>
                             </IconButton>
-                            <AddListingDrawer isOpen={openDrawer} closeDrawer={handleClickCloseDrawer} />
+                            <AddListingDrawer isOpen={openDrawer} closeDrawer={handleClickCloseDrawer} onSuccess={refreshListings} />
                         </div>
                     </div>
                     <ListingFilters onViewChange={handleViewChange} currentView={viewMode} />
                 </header>
                 <div className={`flex ${viewMode === 'list' ? 'flex-col' : viewMode === 'grid' ? 'flex-row' : viewMode} flex-wrap gap-4`}>
-                    <ListingCard price={420} address="Ottawa, Slater st." beds={2} date='2026-03-07' area={68} />
-                    <ListingCard price={630} address="Ottawa, Albert st." beds={4} date='2026-01-12' area={112} />
-                    <ListingCard price={630} address="Ottawa, Albert st." beds={4} date='2026-01-12' area={112} />
-                    <ListingCard price={630} address="Ottawa, Albert st." beds={4} date='2026-01-12' area={112} />
-                    <ListingCard price={630} address="Ottawa, Albert st." beds={4} date='2026-01-12' area={112} />
-                    <ListingCard price={630} address="Ottawa, Albert st." beds={4} date='2026-01-12' area={112} />
+                    {!isLoadingListings ? (
+                        listings && listings.length > 0 ? ( listings.map(listing => {
+                            const dateListed = new Date(listing.createdAt).toLocaleDateString('en-CA')
+                            return (
+                                <ListingCard
+                                    key={listing.id}
+                                    listingId={listing.id}
+                                    price={listing.price}
+                                    address={listing.addressLine1}
+                                    beds={listing.bedrooms}
+                                    date={dateListed}
+                                    area={listing.area}
+                                    areaUnit={listing.areaUnit === "sqm" ? "m" : "f"}
+                                    title={listing.title}
+                                    thumbnail={listing.thumbnail} />
+                            )})) : (
+                                <Alert className='w-full rounded-lg!' severity="info">No listings found.</Alert>
+                            )
+                    ): (
+                        <div>Loading</div>
+                    )}
                 </div>
             </section>
         </div>

@@ -2,8 +2,9 @@ import { Button, FormControl, styled, ToggleButton, ToggleButtonGroup } from "@m
 import NumberField from "../NumberField"
 import Select, { type PropsValue, } from "react-select"
 import type { ListingFormData } from "../AddListingDrawer"
-import type { Dispatch, SetStateAction } from "react"
+import  { type Dispatch, type SetStateAction } from "react"
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
+import * as React from "react";
 
 type PricingAndRulesStepProps = {
     formData: ListingFormData,
@@ -71,10 +72,12 @@ export const PricingAndRulesStep = ({ formData, setFormData }: PricingAndRulesSt
             status: status
         }))
     }
-    const handleImageChange = (e: any) => {
+    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = Array.from(e.target.files ?? [])
+
         setFormData(prev => ({
             ...prev,
-            image: e.target.files[0]
+            images: files
         }))
     }
     return (
@@ -166,9 +169,9 @@ export const PricingAndRulesStep = ({ formData, setFormData }: PricingAndRulesSt
                 </FormControl>
             </section>
             <section className="flex gap-4 my-4">
-                {/* thumbnail */}
+                {/* photos */}
                 <FormControl className="w-1/2">
-                    <span className="mb-2">Photo</span>
+                    <span className="mb-2">Photos</span>
                     <Button
                         component="label"
                         role={undefined}
@@ -176,13 +179,19 @@ export const PricingAndRulesStep = ({ formData, setFormData }: PricingAndRulesSt
                         tabIndex={-1}
                         startIcon={<CloudUploadIcon />}
                     >
-                        Upload Photo
+                        Upload Photos
                         <VisuallyHiddenInput
                             type="file"
+                            accept="image/png,image/jpeg,image/webp"
                             onChange={handleImageChange}
                             multiple
                         />
                     </Button>
+                    {formData.images.length > 0 && (
+                        <div className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+                            {formData.images.length} file(s) selected
+                        </div>
+                    )}
                 </FormControl>
                 {/* status */}
                 <FormControl className="w-1/2">

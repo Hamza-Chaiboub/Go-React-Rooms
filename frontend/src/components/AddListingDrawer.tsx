@@ -33,7 +33,7 @@ export type ListingFormData = {
     petsAllowed: boolean;
     smokingAllowed: boolean;
     status: PropsValue<StatusOption> | null;
-    image: File | null;
+    images: File[];
 }
 
 const initialFormData: ListingFormData = {
@@ -62,10 +62,10 @@ const initialFormData: ListingFormData = {
     petsAllowed: false,
     smokingAllowed: false,
     status: null,
-    image: null
+    images: []
 }
 
-export const AddListingDrawer = ({ isOpen, closeDrawer }: { isOpen: boolean, closeDrawer: () => void }) => {
+export const AddListingDrawer = ({ isOpen, closeDrawer, onSuccess }: { isOpen: boolean, closeDrawer: () => void, onSuccess: () => void }) => {
     const [step, setStep] = useState(0)
     const [formData, setFormData] = useState<ListingFormData>(initialFormData)
     const steps = [
@@ -168,13 +168,15 @@ export const AddListingDrawer = ({ isOpen, closeDrawer }: { isOpen: boolean, clo
 
             const listingData = await listingRes.json()
 
-            if (formData.image) {
+            if (formData.images.length > 0) {
                 const form = new FormData()
                 form.append("listingId", listingData.id)
                 form.append("altText", listingData.title)
-                form.append("sortOrder", "0")
-                form.append("isThumbnail", "true")
-                form.append("file", formData.image)
+                form.append("thumbnailIndex", "0")
+
+                formData.images.forEach((file) => {
+                    form.append("files", file)
+                })
 
                 const imageRes = await apiFetch(apiUrl, "/listings/images/upload", {
                     method: "POST",
@@ -191,9 +193,13 @@ export const AddListingDrawer = ({ isOpen, closeDrawer }: { isOpen: boolean, clo
                     }
                     throw new Error(errorText)
                 }
+
+                const uploadedImages = await imageRes.json()
+                console.log(uploadedImages)
             }
             setFormData(initialFormData)
             setStep(0)
+            onSuccess?.()
             closeDrawer()
         } catch (error) {
             console.log('error creating listing', error)
