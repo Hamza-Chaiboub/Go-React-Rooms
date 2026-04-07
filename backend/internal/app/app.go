@@ -54,8 +54,12 @@ func New(cfg config.Config) (*App, error) {
 
 	mux := http.NewServeMux()
 
+	csrfOpt := security.CSRFCookieOptions(cfg.AppEnv)
+	if cfg.AppEnv != "development" {
+		csrfOpt.Domain = cfg.DomainURL
+	}
 	csrfH := security.CSRFHandlers{
-		Opt: security.CSRFCookieOptions(cfg.AppEnv),
+		Opt: csrfOpt,
 	}
 	rateLimiter := security.NewRateLimiter(rd.Client)
 	//Issue CSRF cookie/token

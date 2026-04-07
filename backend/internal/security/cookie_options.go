@@ -9,6 +9,7 @@ import (
 type CSRFOptions struct {
 	Secure   bool
 	SameSite http.SameSite
+	Domain   string
 }
 
 func SessionCookieOptions(appEnv string) auth.CookieOptions {
