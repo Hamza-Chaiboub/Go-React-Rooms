@@ -19,7 +19,7 @@ func MintCSRF(w http.ResponseWriter, token string, opt CSRFOptions) {
 		Value:    token,
 		Path:     "/",
 		Domain:   opt.Domain,
-		HttpOnly: true,
+		HttpOnly: false,
 		Secure:   opt.Secure,
 		SameSite: opt.SameSite,
 		MaxAge:   int((24 * time.Hour).Seconds()),
