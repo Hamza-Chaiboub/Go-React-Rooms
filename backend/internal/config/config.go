@@ -10,6 +10,7 @@ type Config struct {
 	AppEnv      string
 	Port        string
 	CorsOrigin  []string
+	DomainURL   string
 	DatabaseURL string
 	RedisURL    string
 }
@@ -18,6 +19,7 @@ func LoadConfig() Config {
 	appEnv := getEnv("APP_ENV", "development")
 	port := getEnv("BACKEND_PORT", "8080")
 	allCors := getEnv("CORS_ORIGIN", "http://localhost:5173")
+	domainURL := getEnv("DOMAIN_URL", ".localhost:8080")
 
 	parts := strings.Split(allCors, ",")
 	var origins []string
@@ -42,6 +44,7 @@ func LoadConfig() Config {
 		AppEnv:      appEnv,
 		Port:        port,
 		CorsOrigin:  origins,
+		DomainURL:   domainURL,
 		DatabaseURL: databaseURL,
 		RedisURL:    redisURL,
 	}
