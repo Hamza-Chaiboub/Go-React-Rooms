@@ -104,7 +104,7 @@ export const AddListingDrawer = ({ isOpen, closeDrawer, onSuccess }: { isOpen: b
             const startDateRaw = new Date(formData.startDate as Date)
             const endDateRaw = new Date(formData.endDate as Date)
 
-            let convertedMinLeaseDays
+            let convertedMinLeaseDays = 0
             if (formData.duration) {
                 switch ((formData.durationUnit as UnitOptions)?.value) {
                     case "day":
@@ -124,79 +124,55 @@ export const AddListingDrawer = ({ isOpen, closeDrawer, onSuccess }: { isOpen: b
                 }
             }
 
-            const dataToSubmit = {
-                title: formData.title,
-                description: "test desc",
-                addressLine1: formData.blockNumber + " " + formData.street,
-                city: formData.city,
-                province: formData.province,
-                country: (formData.country as CountryOption)?.value,
-                postalCode: formData.postalCode,
-                latitude: 0,
-                longitude: 0,
-                bedrooms: formData.bedrooms,
-                bathrooms: formData.bathrooms,
-                area: formData.area,
-                areaUnit: formData.areaUnit,
-                price: formData.price,
-                currency: (formData.currency as CurrencyOption)?.value,
-                availableFrom: startDateRaw.toISOString().replace('Z', '-05:00'), // I'll sort out the timezone later, get TZ offset from client
-                AvailableUntil: endDateRaw.toISOString().replace('Z', '-05:00'),
-                minLeaseDays: convertedMinLeaseDays,
-                isFurnished: formData.isFurnished,
-                petsAllowed: formData.petsAllowed,
-                smokingAllowed: formData.smokingAllowed,
-                parkingAvailable: formData.parking,
-                status: (formData.status as StatusOption)?.value
-            }
+            const form = new FormData() 
+            form.append("title", formData.title)
+            form.append("description", "test desc",)
+            form.append("addressLine1", `${formData.blockNumber} ${formData.street}`.trim())
+            form.append("city", formData.city)
+            form.append("province", formData.province)
+            form.append("country", (formData.country as CountryOption)?.value || "")
+            form.append("postalCode", formData.postalCode)
+            form.append("latitude", "0")
+            form.append("longitude", "0")
+            form.append("bedrooms", String(formData.bedrooms ?? 0))
+            form.append("bathrooms", String(formData.bathrooms ?? 0))
+            form.append("area", String(formData.area ?? 0))
+            form.append("areaUnit", formData.areaUnit)
+            form.append("price", String(formData.price ?? 0))
+            form.append("currency", (formData.currency as CurrencyOption)?.value || "")
+            form.append("availableFrom", startDateRaw.toISOString().replace('Z', '-05:00')) // I'll sort out the timezone later, get TZ offset from client
+            form.append("AvailableUntil", endDateRaw.toISOString().replace('Z', '-05:00'))
+            form.append("minLeaseDays", String(convertedMinLeaseDays))
+            form.append("isFurnished", String(Boolean(formData.isFurnished)))
+            form.append("petsAllowed", String(Boolean(formData.petsAllowed)))
+            form.append("smokingAllowed", String(Boolean(formData.smokingAllowed)))
+            form.append("parkingAvailable", String(Boolean(formData.parking)))
+            form.append("status", (formData.status as StatusOption)?.value || "")
+            form.append("altText", formData.title)
+            form.append("thumbnailIndex", "0")
 
-            const listingRes = await apiFetch(apiUrl, "/listings/create", {
-                method: "POST",
-                body: JSON.stringify(dataToSubmit)
+            formData.images.forEach((file) => {
+                form.append("files", file)
             })
 
-            if (!listingRes.ok) {
-                let errorText = `Request failed with status ${listingRes.status}`
+            const res = await apiFetch(apiUrl, "/listings/create", {
+                method: "POST",
+                body: form
+            })
+
+            if (!res.ok) {
+                let errorText = `Request failed with status ${res.status}`
                 try {
-                    const errorData = await listingRes.json()
+                    const errorData = await res.json()
                     errorText = errorData.error || errorData
                 } catch {
-                    errorText = listingRes.statusText || errorText
+                    errorText = res.statusText || errorText
                 }
                 throw new Error(errorText)
             }
 
-            const listingData = await listingRes.json()
+            await res.json()
 
-            if (formData.images.length > 0) {
-                const form = new FormData()
-                form.append("listingId", listingData.id)
-                form.append("altText", listingData.title)
-                form.append("thumbnailIndex", "0")
-
-                formData.images.forEach((file) => {
-                    form.append("files", file)
-                })
-
-                const imageRes = await apiFetch(apiUrl, "/listings/images/upload", {
-                    method: "POST",
-                    body: form
-                })
-
-                if (!imageRes.ok) {
-                    let errorText = `Request failed with status ${imageRes.status}`
-                    try {
-                        const errorData = await imageRes.json()
-                        errorText = errorData.error || errorData
-                    } catch {
-                        errorText = imageRes.statusText || errorText
-                    }
-                    throw new Error(errorText)
-                }
-
-                const uploadedImages = await imageRes.json()
-                console.log(uploadedImages)
-            }
             setFormData(initialFormData)
             setStep(0)
             onSuccess?.()
