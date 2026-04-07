@@ -60,7 +60,8 @@ services:
     env_file:
       - .env
     environment:
-      VITE_API_URL: "http://localhost:8080"
+      VITE_API_URL: "${API_URL}"
+      VITE_ALLOWED_HOSTS: "${ALLOWED_HOSTS}"
     ports:
       - "5173:5173"
     volumes:
