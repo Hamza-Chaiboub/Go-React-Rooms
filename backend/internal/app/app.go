@@ -15,6 +15,7 @@ import (
 	"go-react-rooms/internal/httpserver"
 	"go-react-rooms/internal/listing"
 	"go-react-rooms/internal/middleware"
+	"go-react-rooms/internal/repositories/listing_images"
 	"go-react-rooms/internal/repositories/listings"
 	"go-react-rooms/internal/repositories/messages"
 	"go-react-rooms/internal/repositories/rooms"
@@ -112,8 +113,19 @@ func New(cfg config.Config) (*App, error) {
 		Rooms:    roomRepo,
 		Messages: messagesRepo,
 	}
+	listingImagesRepo := listing_images.Repo{
+		DB: pg.DB,
+	}
+	ctx := context.Background()
+	s3Storage, err := storage.NewS3Storage(ctx)
+	if err != nil {
+		return nil, err
+	}
 	listingHandler := listing.Handler{
-		Listings: listingRepo,
+		Listings:      listingRepo,
+		ListingImages: listingImagesRepo,
+		S3:            s3Storage,
+		DB:            pg.DB,
 	}
 	roomsHandler := middleware.RequireAuth(sessionStore, http.HandlerFunc(roomHandler.HandleRooms))
 	mux.Handle("/rooms", roomsHandler)
@@ -135,22 +147,18 @@ func New(cfg config.Config) (*App, error) {
 	var createListingHandler http.Handler
 	createListingHandler = http.HandlerFunc(listingHandler.CreateListing)
 	createListingHandler = middleware.RequireAuth(sessionStore, createListingHandler)
+	createListingHandler = security.CSRFMiddleware(createListingHandler)
+	createListingHandler = security.BodyLimit(12<<20, createListingHandler)
 	mux.Handle("/listings/create", createListingHandler)
 
-	// upload images to S3
-	ctx := context.Background()
-	s3Storage, err := storage.NewS3Storage(ctx)
-	if err != nil {
-		return nil, err
-	}
-	uploadHandler := storage.NewUploadHandler(s3Storage)
-	var uploadS3Handler http.Handler
-	uploadS3Handler = http.HandlerFunc(uploadHandler.CreateImageUploadURL)
-	uploadS3Handler = middleware.RequireAuth(sessionStore, uploadS3Handler)
-	uploadS3Handler = security.CSRFMiddleware(uploadS3Handler)
-	mux.Handle("/uploads/image", uploadS3Handler)
+	// get all listings
+	var listListingsHandler http.Handler
+	listListingsHandler = http.HandlerFunc(listingHandler.ListListings)
+	listListingsHandler = security.CSRFMiddleware(listListingsHandler)
+	mux.Handle("/listings", listListingsHandler)
 
 	// get image/view URL
+	uploadHandler := storage.NewUploadHandler(s3Storage)
 	var getImageHandler http.Handler
 	getImageHandler = http.HandlerFunc(uploadHandler.GetImageURL)
 	getImageHandler = security.CSRFMiddleware(getImageHandler)
@@ -163,9 +171,6 @@ func New(cfg config.Config) (*App, error) {
 	mux.Handle("/ws", wsHandler)
 
 	var handler http.Handler = mux
-	//handler := httpserver.NewHandler(httpserver.CORSConfig{
-	//	Origins: cfg.CorsOrigin,
-	//}, mux)
 	handler = security.SecurityHeaders(handler)
 	handler = httpserver.NewHandler(httpserver.CORSConfig{
 		Origins: cfg.CorsOrigin,
