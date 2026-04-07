@@ -2,7 +2,6 @@ package listing
 
 import (
 	"database/sql"
-	"encoding/json"
 	"go-react-rooms/internal/functions"
 	"go-react-rooms/internal/middleware"
 	"go-react-rooms/internal/repositories/listing_images"
@@ -25,21 +24,131 @@ type CreateListingResponse struct {
 	Images  []listing_images.ListingImage `json:"images"`
 }
 
-func (handler Handler) CreateListing(w http.ResponseWriter, r *http.Request) {
+func (h Handler) CreateListing(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		functions.WriteError(w, http.StatusMethodNotAllowed, "method not allowed, use POST")
 		return
 	}
-	UserID, ok := middleware.UserIDFromContext(r.Context())
-	if !ok {
+
+	userID, ok := middleware.UserIDFromContext(r.Context())
+	if !ok || userID == "" {
 		functions.WriteError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
 
-	var req listings.InsertParams
-	req.UserID = UserID
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := r.ParseMultipartForm(25 << 20); err != nil {
+		functions.WriteError(w, http.StatusBadRequest, "invalid multipart form")
+		return
+	}
+
+	bedrooms, err := parseRequiredInt(r.FormValue("bedrooms"), "bedrooms")
+	if err != nil {
 		functions.WriteError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	bathrooms, err := parseRequiredFloat(r.FormValue("bathrooms"), "bathrooms")
+	if err != nil {
+		functions.WriteError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	area, err := parseRequiredFloat(r.FormValue("area"), "area")
+	if err != nil {
+		functions.WriteError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	price, err := parseRequiredFloat(r.FormValue("price"), "price")
+	if err != nil {
+		functions.WriteError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	latitude, err := parseRequiredFloat(r.FormValue("latitude"), "latitude")
+	if err != nil {
+		functions.WriteError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	longitude, err := parseRequiredFloat(r.FormValue("longitude"), "longitude")
+	if err != nil {
+		functions.WriteError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	isFurnished, err := parseRequiredBool(r.FormValue("isFurnished"), "isFurnished")
+	if err != nil {
+		functions.WriteError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	petsAllowed, err := parseRequiredBool(r.FormValue("petsAllowed"), "petsAllowed")
+	if err != nil {
+		functions.WriteError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	smokingAllowed, err := parseRequiredBool(r.FormValue("smokingAllowed"), "smokingAllowed")
+	if err != nil {
+		functions.WriteError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	parkingAvailable, err := parseRequiredBool(r.FormValue("parkingAvailable"), "parkingAvailable")
+	if err != nil {
+		functions.WriteError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	availableFrom, err := parseOptionalTime(r.FormValue("availableFrom"))
+	if err != nil || availableFrom == nil {
+		functions.WriteError(w, http.StatusBadRequest, "availableFrom must be a valid RFC3339 datetime")
+		return
+	}
+
+	availableUntil, err := parseOptionalTime(r.FormValue("availableUntil"))
+	if err != nil {
+		functions.WriteError(w, http.StatusBadRequest, "availableUntil must be a valid RFC3339 datetime")
+		return
+	}
+
+	minLeaseDays, err := parseOptionalInt(r.FormValue("minLeaseDays"))
+	if err != nil {
+		functions.WriteError(w, http.StatusBadRequest, "minLeaseDays must be an integer")
+		return
+	}
+
+	params := listings.InsertParams{
+		UserID:           userID,
+		Title:            r.FormValue("title"),
+		Description:      parseOptionalString(r.FormValue("description")),
+		AddressLine1:     r.FormValue("addressLine1"),
+		AddressLine2:     parseOptionalString(r.FormValue("addressLine2")),
+		City:             r.FormValue("city"),
+		Province:         r.FormValue("province"),
+		Country:          r.FormValue("country"),
+		PostalCode:       parseOptionalString(r.FormValue("postalCode")),
+		Latitude:         latitude,
+		Longitude:        longitude,
+		Bedrooms:         bedrooms,
+		Bathrooms:        bathrooms,
+		Area:             area,
+		AreaUnit:         r.FormValue("areaUnit"),
+		Price:            price,
+		Currency:         r.FormValue("currency"),
+		AvailableFrom:    *availableFrom,
+		AvailableUntil:   availableUntil,
+		MinLeaseDays:     minLeaseDays,
+		IsFurnished:      isFurnished,
+		PetsAllowed:      petsAllowed,
+		SmokingAllowed:   smokingAllowed,
+		ParkingAvailable: parkingAvailable,
+		Status:           r.FormValue("status"),
+	}
+
+	if params.Title == "" || params.AddressLine1 == "" || params.City == "" || params.Province == "" || params.Country == "" || params.AreaUnit == "" || params.Currency == "" || params.Status == "" {
+		functions.WriteError(w, http.StatusBadRequest, "missing required listing fields")
 		return
 	}
 
@@ -118,7 +227,7 @@ func (handler Handler) CreateListing(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	tx, err := handler.DB.BeginTx(r.Context(), nil)
+	tx, err := h.DB.BeginTx(r.Context(), nil)
 	if err != nil {
 		functions.WriteError(w, http.StatusInternalServerError, "failed to start transaction")
 		return
@@ -127,7 +236,7 @@ func (handler Handler) CreateListing(w http.ResponseWriter, r *http.Request) {
 	uploadedKeys := make([]string, 0, len(validatedFiles))
 	cleanupS3 := func() {
 		for _, key := range uploadedKeys {
-			_ = handler.S3.DeleteObject(r.Context(), key)
+			_ = h.S3.DeleteObject(r.Context(), key)
 		}
 	}
 
@@ -135,7 +244,7 @@ func (handler Handler) CreateListing(w http.ResponseWriter, r *http.Request) {
 		_ = tx.Rollback()
 	}()
 
-	listing, err := handler.Listings.InsertTx(r.Context(), tx, req)
+	listing, err := h.Listings.InsertTx(r.Context(), tx, params)
 	if err != nil {
 		functions.WriteError(w, http.StatusBadRequest, err.Error())
 		return
@@ -144,7 +253,7 @@ func (handler Handler) CreateListing(w http.ResponseWriter, r *http.Request) {
 	createdImages := make([]listing_images.ListingImage, 0, len(validatedFiles))
 
 	for i, file := range validatedFiles {
-		s3Key, err := handler.S3.UploadListingImage(r.Context(), listing.ID, file.ContentType, file.Data)
+		s3Key, err := h.S3.UploadListingImage(r.Context(), listing.ID, file.ContentType, file.Data)
 		if err != nil {
 			cleanupS3()
 			functions.WriteError(w, http.StatusInternalServerError, "failed to upload image to S3")
@@ -153,7 +262,7 @@ func (handler Handler) CreateListing(w http.ResponseWriter, r *http.Request) {
 
 		uploadedKeys = append(uploadedKeys, s3Key)
 
-		image, err := handler.ListingImages.InsertListingImageTx(r.Context(), tx, listing_images.InsertListingImageParams{
+		image, err := h.ListingImages.InsertListingImageTx(r.Context(), tx, listing_images.InsertListingImageParams{
 			ListingID:   listing.ID,
 			S3Key:       s3Key,
 			AltText:     altText,

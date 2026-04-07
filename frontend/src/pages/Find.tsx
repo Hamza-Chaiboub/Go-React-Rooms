@@ -38,11 +38,11 @@ type Listing = {
     status: string;
     createdAt: string;
     updatedAt: string;
-    thumbnail: {
+    thumbnail: [{
         ID: string;
-        S3Key: string;
+        s3Key: string;
         AltText: string;
-    }
+    }]
 }
 
 export const Find = ({ className }: {className?: string}) => {

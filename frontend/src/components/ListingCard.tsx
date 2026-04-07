@@ -14,11 +14,11 @@ type ListinCardType = {
     area: number;
     title: string;
     areaUnit: string;
-    thumbnail: {
+    thumbnail: [{
         ID: string;
-        S3Key: string;
+        s3Key: string;
         AltText: string;
-    } | null
+    } | null]
 }
 
 export const ListingCard = ({listingId, price, address, beds, date, area, title, areaUnit, thumbnail}: ListinCardType) => {
@@ -26,6 +26,7 @@ export const ListingCard = ({listingId, price, address, beds, date, area, title,
     const handleFavouriteChange = () => {
         setIsFavourite(prev => !prev)
     }
+    console.log("this is the thumbnail: ", thumbnail[0])
     return (
         <Card key={listingId} className='flex sm:flex-row flex-col grow shadow-none! border border-slate-200 dark:border-slate-600/75 rounded-lg! bg-slate-100! dark:bg-slate-800! dark:text-white!'>
             <div className="w-64!">
@@ -34,9 +35,9 @@ export const ListingCard = ({listingId, price, address, beds, date, area, title,
                     <CardMedia
                         className='h-full cursor-pointer'
                         component="img"
-                        image={thumbnail?.S3Key}
-                        alt={thumbnail?.AltText}
-                        onClick={() => console.log(thumbnail?.S3Key)}
+                        image={thumbnail[0]?.s3Key}
+                        alt={thumbnail[0]?.AltText}
+                        onClick={() => console.log(thumbnail[0]?.s3Key)}
                     />
                 ) : (
                     <Skeleton
