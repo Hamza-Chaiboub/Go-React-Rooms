@@ -28,12 +28,12 @@ export const ListingCard = ({listingId, price, address, beds, date, area, title,
     }
     console.log("this is the thumbnail: ", thumbnail[0])
     return (
-        <Card key={listingId} className='flex sm:flex-row flex-col grow shadow-none! border border-slate-200 dark:border-slate-600/75 rounded-lg! bg-slate-100! dark:bg-slate-800! dark:text-white!'>
-            <div className="w-64!">
+        <Card key={listingId} className='flex sm:flex-row flex-col grow w-72 sm:w-full shadow-none! border border-slate-200 dark:border-slate-600/75 rounded-lg! bg-slate-100! dark:bg-slate-800! dark:text-white!'>
+            <div className="w-72!">
             {
                 thumbnail ? (
                     <CardMedia
-                        className='h-full cursor-pointer'
+                        className='h-36! cursor-pointer object-cover'
                         component="img"
                         image={thumbnail[0]?.s3Key}
                         alt={thumbnail[0]?.AltText}
@@ -41,7 +41,7 @@ export const ListingCard = ({listingId, price, address, beds, date, area, title,
                     />
                 ) : (
                     <Skeleton
-                        className="h-full! cursor-pointer"
+                        className="h-36! cursor-pointer"
                         variant="rectangular"
                         onClick={() => console.log("clicked")}
                     />
