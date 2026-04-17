@@ -216,7 +216,10 @@ func (repo Repo) InsertTx(ctx context.Context, tx *sql.Tx, params InsertParams) 
 	return insertListing(ctx, tx, params)
 }
 
-func (repo Repo) GetAllListings(ctx context.Context) ([]Listing, error) {
+func (repo Repo) GetAllListings(ctx context.Context, limit int) ([]Listing, error) {
+	if limit <= 0 || limit > 200 {
+		limit = 10
+	}
 	rows, err := repo.DB.QueryContext(ctx, `
 		SELECT
 			l.id::text,
@@ -256,7 +259,8 @@ func (repo Repo) GetAllListings(ctx context.Context) ([]Listing, error) {
 		    ON li.listing_id = l.id
 			AND li.is_thumbnail = true
 		ORDER BY l.created_at DESC, li.sort_order ASC
-	`)
+		LIMIT $1
+	`, limit)
 	if err != nil {
 		return nil, err
 	}

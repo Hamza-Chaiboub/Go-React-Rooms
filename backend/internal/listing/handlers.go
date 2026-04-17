@@ -10,6 +10,7 @@ import (
 	"io"
 	"net/http"
 	"strconv"
+	"strings"
 )
 
 type Handler struct {
@@ -291,7 +292,13 @@ func (h Handler) CreateListing(w http.ResponseWriter, r *http.Request) {
 }
 
 func (handler Handler) ListListings(w http.ResponseWriter, r *http.Request) {
-	items, err := handler.Listings.GetAllListings(r.Context())
+	limit := 2
+	if requestLimit := strings.TrimSpace(r.URL.Query().Get("limit")); requestLimit != "" {
+		if requestLimitToInt, err := strconv.Atoi(requestLimit); err == nil {
+			limit = requestLimitToInt
+		}
+	}
+	items, err := handler.Listings.GetAllListings(r.Context(), limit)
 	if err != nil {
 		functions.WriteError(w, http.StatusInternalServerError, "could not list listings")
 		return
