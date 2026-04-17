@@ -6,47 +6,12 @@ import SearchIcon from '@mui/icons-material/Search';
 import AddIcon from '@mui/icons-material/Add';
 import { ListingCard } from '../components/ListingCard';
 import { ListingFilters } from '../components/ListingFilters';
-import { useEffect, useState } from 'react';
 import { AddListingDrawer } from '../components/AddListingDrawer';
-import { apiFetch } from '../api/api';
-
-type Listing = {
-    id: string;
-    userId: string;
-    title: string;
-    description: string;
-    addressLine1: string;
-    city: string;
-    province: string;
-    country: string;
-    postalCode: string;
-    latitude: number;
-    longitude: number;
-    bedrooms: number;
-    bathrooms: number;
-    area: number;
-    areaUnit: string;
-    price: number;
-    currency: string;
-    availableFrom: string;
-    availableUntil: string;
-    minLeaseDays: number;
-    isFurnished: boolean;
-    petsAllowed: boolean;
-    smokingAllowed: boolean;
-    parkingAvailable: boolean;
-    status: string;
-    createdAt: string;
-    updatedAt: string;
-    thumbnail: [{
-        ID: string;
-        s3Key: string;
-        AltText: string;
-    }]
-}
+import { useListings } from '../hooks/useListings';
+import { useState } from 'react';
 
 export const Find = ({ className }: {className?: string}) => {
-    const apiUrl = import.meta.env.VITE_API_URL as string
+    const { listings, isLoading, error, refreshListings } = useListings()
     const breadcrumbs = [
         <Link href="/" key="1" className='text-inherit' >Home</Link>,
         <Typography className='text-slate-950 dark:text-slate-300'>Find</Typography>
@@ -54,9 +19,6 @@ export const Find = ({ className }: {className?: string}) => {
 
     const [viewMode, setViewMode] = useState<'list' | 'grid' | string>('flex-col lg:flex-row')
     const [openDrawer, setOpenDrawer] = useState(false)
-    const [listings, setListings] = useState<Listing[]>([])
-    const [isLoadingListings, setIsLoadingListings] = useState<boolean>(false)
-    const [refreshTrigger, setRefreshTrigger] = useState<number>(0)
 
     const handleViewChange = (mode: 'list' | 'grid' | string) => {
         setViewMode(mode)
@@ -64,24 +26,6 @@ export const Find = ({ className }: {className?: string}) => {
 
     const handleClickOpenDrawer = () => setOpenDrawer(true)
     const handleClickCloseDrawer = () => setOpenDrawer(false)
-    const refreshListings = () => setRefreshTrigger(prev => prev + 1)
-    useEffect(() => {
-        setIsLoadingListings(true)
-        async function getAllListings() {
-            const res = await apiFetch(`${apiUrl}`, "/listings")
-
-            if (!res.ok) {
-                throw new Error(`HTTP ${res.status}`)
-            }
-
-            const listingsList = await res.json()
-            setListings(listingsList.listings)
-            console.log(listingsList)
-        }
-
-        getAllListings()
-        setIsLoadingListings(false)
-    }, [apiUrl, refreshTrigger])
     return (
         <>
         <div className={`flex flex-col lg:flex-row px-2 md:px-2 ${className}`}>
@@ -115,9 +59,9 @@ export const Find = ({ className }: {className?: string}) => {
                     <ListingFilters onViewChange={handleViewChange} currentView={viewMode} />
                 </header>
                 <div className={`flex ${viewMode === 'list' ? 'flex-col' : viewMode === 'grid' ? 'flex-row' : viewMode} flex-wrap gap-4`}>
-                    {!isLoadingListings ? (
+                    {!isLoading ? (
                         listings && listings.length > 0 ? ( listings.map(listing => {
-                            const dateListed = new Date(listing.createdAt).toLocaleDateString('en-CA')
+                            // const dateListed = new Date(listing.createdAt).toLocaleDateString('en-CA')
                             return (
                                 <ListingCard
                                     key={listing.id}
@@ -125,7 +69,7 @@ export const Find = ({ className }: {className?: string}) => {
                                     price={listing.price}
                                     address={listing.addressLine1}
                                     beds={listing.bedrooms}
-                                    date={dateListed}
+                                    baths={listing.bathrooms}
                                     area={listing.area}
                                     areaUnit={listing.areaUnit === "sqm" ? "m" : "f"}
                                     title={listing.title}
@@ -136,6 +80,7 @@ export const Find = ({ className }: {className?: string}) => {
                     ): (
                         <div>Loading</div>
                     )}
+                    {error && <Alert className='w-full rounded-lg!' severity="error">{error}</Alert>}
                 </div>
             </section>
         </div>
