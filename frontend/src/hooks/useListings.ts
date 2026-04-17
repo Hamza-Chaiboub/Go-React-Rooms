@@ -37,7 +37,7 @@ export type Listing = {
     }]
 }
 
-export const useListings = () => {
+export const useListings = (limit = 2) => {
     const apiUrl = import.meta.env.VITE_API_URL as string
 
     const [listings, setListings] = useState<Listing[]>([])
@@ -57,7 +57,7 @@ export const useListings = () => {
                 setIsLoading(true)
                 setError(null)
 
-                const res = await apiFetch(apiUrl, "/listings")
+                const res = await apiFetch(apiUrl, `/listings?limit=${limit}`)
 
                 if(!res.ok) {
                     throw new Error(`HTTP ${res.status}`)
