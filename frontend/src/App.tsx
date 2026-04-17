@@ -10,6 +10,7 @@ import GuestRoutes from "./utils/GuestRoutes"
 import { Find } from "./pages/Find"
 import { TopNav } from "./components/TopNav"
 import { useProtectedRoutes } from "./hooks/useProtectedRoutes"
+import { Home } from "./pages/Home"
 function Layout() {
     return (
         <>
@@ -27,8 +28,10 @@ function GuestLayout() {
         </>
     )
 }
-
-function FindPageWrapper() {
+type HybridPageWrapperProps = {
+    ComponentToRender: React.ComponentType<{ className?: string }>
+}
+const HybridPageWrapper = ({ ComponentToRender }: HybridPageWrapperProps) => {
     const [me, isLoading] = useProtectedRoutes()
 
     if (isLoading) return null;
@@ -37,7 +40,7 @@ function FindPageWrapper() {
         return (
             <>
                 <Sidebar/>
-                <Find className="ml-16 lg:ml-64"/>
+                <ComponentToRender className="ml-16 lg:ml-64"/>
             </>
         )
     }
@@ -45,7 +48,7 @@ function FindPageWrapper() {
     return (
         <>
             <TopNav/>
-            <Find/>
+            <ComponentToRender/>
         </>
     )
 }
@@ -55,11 +58,11 @@ function App() {
     <>
         <BrowserRouter>
             <Routes>
-                <Route path="/find" element={<FindPageWrapper/>} />
+                <Route path="/" element={<HybridPageWrapper ComponentToRender={Home}/>} />
+                <Route path="/find" element={<HybridPageWrapper ComponentToRender={Find}/>} />
                 <Route element={<ProtectedRoutes/>}>
                     <Route element={<Layout/>}>
                         <Route path="/dashboard" element={<Dashboard />} />
-                        <Route path="/" element={<Dashboard />} />
                         <Route path="/chat/*" element={<Chat />} />
                         <Route path="/logout" element={<Logout />} />
                     </Route>
