@@ -1,16 +1,17 @@
 import { Card, CardMedia, CardContent, Typography, IconButton, Skeleton } from "@mui/material"
 import FavoriteIcon from '@mui/icons-material/Favorite';
 import KingBedOutlinedIcon from '@mui/icons-material/KingBedOutlined';
-import CalendarMonthOutlinedIcon from '@mui/icons-material/CalendarMonthOutlined';
+import BathtubOutlinedIcon from '@mui/icons-material/BathtubOutlined';
 import SelectAllOutlinedIcon from '@mui/icons-material/SelectAllOutlined';
 import { useState } from "react";
 
 type ListinCardType = {
+    className?: string;
     listingId: string;
     price: number;
     address: string;
     beds: number;
-    date: string;
+    baths: number;
     area: number;
     title: string;
     areaUnit: string;
@@ -21,14 +22,14 @@ type ListinCardType = {
     } | null]
 }
 
-export const ListingCard = ({listingId, price, address, beds, date, area, title, areaUnit, thumbnail}: ListinCardType) => {
+export const ListingCard = ({className, listingId, price, address, beds, baths, area, title, areaUnit, thumbnail}: ListinCardType) => {
     const [isFavorite, setIsFavourite] = useState<boolean>(false)
     const handleFavouriteChange = () => {
         setIsFavourite(prev => !prev)
     }
     console.log("this is the thumbnail: ", thumbnail[0])
     return (
-        <Card key={listingId} className='flex sm:flex-row flex-col grow w-72 sm:w-full shadow-none! border border-slate-200 dark:border-slate-600/75 rounded-lg! bg-slate-100! dark:bg-slate-800! dark:text-white!'>
+        <Card key={listingId} className={`flex sm:flex-row flex-col grow w-72 sm:w-full shadow-none! border border-slate-200 dark:border-slate-600/75 rounded-lg! bg-slate-100! dark:bg-slate-800! dark:text-white! ${className}`}>
             <div className="w-72!">
             {
                 thumbnail ? (
@@ -67,7 +68,7 @@ export const ListingCard = ({listingId, price, address, beds, date, area, title,
                 <hr className='text-slate-300 dark:text-slate-600/50' />
                 <div className='flex sm:justify-start justify-between items-center gap-3 text-slate-600 text-xs!'>
                     <div className='flex items-center gap-1 text-slate-950 dark:text-slate-200'><KingBedOutlinedIcon/> <div className='text-slate-600 dark:text-slate-400'>{beds}</div></div>
-                    <div className='flex items-center gap-1 text-slate-950 dark:text-slate-200'><CalendarMonthOutlinedIcon/> <div className='text-slate-600 dark:text-slate-400'>{date}</div></div>
+                    <div className='flex items-center gap-1 text-slate-950 dark:text-slate-200'><BathtubOutlinedIcon/> <div className='text-slate-600 dark:text-slate-400'>{baths}</div></div>
                     <div className='flex items-center gap-1 text-slate-950 dark:text-slate-200'><SelectAllOutlinedIcon/> <div className='text-slate-600 dark:text-slate-400'>{area} {areaUnit}<sup>2</sup></div></div>
                 </div>
             </CardContent>

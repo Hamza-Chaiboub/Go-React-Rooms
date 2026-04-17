@@ -8,7 +8,14 @@ export const TopNav = () => {
     return (
         <nav className="dark:bg-slate-950 w-full relative z-20">
             <div className="flex justify-between items-center h-16 px-4 md:px-8">
-                <p className="dark:text-slate-200! text-3xl font-bold italic">Roomie</p>
+                {/* <p className="dark:text-slate-200! text-3xl font-bold italic">Roomie</p> */}
+                <Link
+                    href="/"
+                    underline="none"
+                    className="text-slate-950! dark:text-slate-200! text-3xl! font-bold! italic!"
+                >
+                    Roomie
+                </Link>
 
                 <div className="hidden md:flex items-center gap-6">
                     <Link
