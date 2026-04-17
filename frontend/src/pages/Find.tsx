@@ -11,7 +11,7 @@ import { useListings } from '../hooks/useListings';
 import { useState } from 'react';
 
 export const Find = ({ className }: {className?: string}) => {
-    const { listings, isLoading, error, refreshListings } = useListings()
+    const { listings, isLoading, error, refreshListings } = useListings(10)
     const breadcrumbs = [
         <Link href="/" key="1" className='text-inherit' >Home</Link>,
         <Typography className='text-slate-950 dark:text-slate-300'>Find</Typography>
